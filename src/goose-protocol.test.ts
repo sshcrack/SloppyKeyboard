@@ -13,6 +13,7 @@ describe('Goose wire validation', () => {
     }), 42);
     expect(state?.receivedAt).toBe(42);
     expect(state?.carries).toEqual([]);
+    expect(state?.spawnRequests).toEqual([]);
   });
   it('validates carried-ball updates', () => {
     const state = parseGooseMessage(JSON.stringify({
@@ -27,5 +28,13 @@ describe('Goose wire validation', () => {
       ballId: 'ball-1',
       released: false,
     });
+  });
+  it('validates Goose-originated ball requests', () => {
+    const state = parseGooseMessage(JSON.stringify({
+      protocolVersion: 1,
+      colliders: [],
+      spawnRequests: [{ id: 'spawn-1', x: -125.5 }],
+    }));
+    expect(state?.spawnRequests).toEqual([{ id: 'spawn-1', x: -125.5 }]);
   });
 });

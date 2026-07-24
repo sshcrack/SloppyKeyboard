@@ -3,7 +3,6 @@ import {
   existsSync,
   mkdirSync,
   readFileSync,
-  rmSync,
   statSync,
   writeFileSync,
 } from 'fs';
@@ -15,34 +14,19 @@ export interface GooseInstallResult {
   targetDll: string;
 }
 
-// Goose v0.31 IL immediately preceding the "Mod Enabler Warning" MessageBox.
-// `br.s 0x1F` jumps directly to the existing mod-initialization call before the
-// configuration value is loaded, so the method's IL evaluation stack remains
-// valid. Keep both signatures to make this safe and idempotent.
-const MOD_WARNING_UNPATCHED = Buffer.from([
-  0x7E, 0x06, 0x00, 0x00, 0x04, 0x7B, 0xAC, 0x00, 0x00, 0x04, 0x2C, 0x1A,
-  0x72, 0xEF, 0x09, 0x00, 0x70, 0x72, 0x0A, 0x0C, 0x00, 0x70,
-]);
 const MOD_WARNING_PATCHED = Buffer.from([
   0x2B, 0x1F, 0x00, 0x00, 0x00, 0x7B, 0xAC, 0x00, 0x00, 0x04, 0x2C, 0x1A,
   0x72, 0xEF, 0x09, 0x00, 0x70, 0x72, 0x0A, 0x0C, 0x00, 0x70,
 ]);
 
-/** Returns true only when a known unpatched Goose v0.31 executable was changed. */
-export const disableGooseModWarning = (executablePath: string): boolean => {
+/** Repairs executables modified by the retired warning-suppression patch. */
+export const restoreGooseExecutable = (executablePath: string): boolean => {
   const executable = readFileSync(executablePath);
-  if (executable.indexOf(MOD_WARNING_PATCHED) !== -1) return false;
-
-  const offset = executable.indexOf(MOD_WARNING_UNPATCHED);
-  if (offset === -1) return false;
-  if (executable.indexOf(MOD_WARNING_UNPATCHED, offset + 1) !== -1) {
-    throw new Error('Desktop Goose contains multiple Mod Enabler Warning patch locations');
-  }
-
   const backupPath = `${executablePath}.pre-mod-warning-patch.bak`;
-  if (!existsSync(backupPath)) copyFileSync(executablePath, backupPath);
-  MOD_WARNING_PATCHED.copy(executable, offset);
-  writeFileSync(executablePath, executable);
+  if (executable.indexOf(MOD_WARNING_PATCHED) === -1 || !existsSync(backupPath)) {
+    return false;
+  }
+  copyFileSync(backupPath, executablePath);
   return true;
 };
 
@@ -67,7 +51,6 @@ export const installGooseMod = (
   const backupPath = `${configPath}.sloppy-keyboard.bak`;
   const targetFolder = join(root, 'Assets', 'Mods', 'SloppyKeyboard');
   const targetDll = join(targetFolder, 'SloppyKeyboard.dll');
-  const autumnModFolder = join(root, 'Assets', 'Mods', 'Autumn');
   if (!existsSync(sourceDll)) throw new Error(`Integration DLL is missing: ${sourceDll}`);
   if (!existsSync(configPath)) throw new Error(`Desktop Goose config is missing: ${configPath}`);
   try {
@@ -75,19 +58,15 @@ export const installGooseMod = (
     if (!existsSync(backupPath)) writeFileSync(backupPath, original, 'utf8');
     const configured = enableMods(original);
     if (configured !== original) writeFileSync(configPath, configured, 'utf8');
-    const warningPatched = disableGooseModWarning(executablePath);
-    // Desktop Goose ships with this optional seasonal mod. It is not part of
-    // Sloppy Keyboard, so remove the bundled copy during automatic setup.
-    const autumnRemoved = existsSync(autumnModFolder);
-    if (autumnRemoved) rmSync(autumnModFolder, { recursive: true, force: true });
+    const executableRestored = restoreGooseExecutable(executablePath);
     mkdirSync(targetFolder, { recursive: true });
     const dllChanged = !existsSync(targetDll)
       || statSync(sourceDll).size !== statSync(targetDll).size
       || !readFileSync(sourceDll).equals(readFileSync(targetDll));
     if (dllChanged) copyFileSync(sourceDll, targetDll);
     return {
-      changed: configured !== original || warningPatched || autumnRemoved || dllChanged,
-      restartRequired: gooseRunning && (warningPatched || autumnRemoved || dllChanged),
+      changed: configured !== original || executableRestored || dllChanged,
+      restartRequired: gooseRunning && (executableRestored || dllChanged),
       targetDll,
     };
   } catch (error) {

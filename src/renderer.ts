@@ -323,6 +323,7 @@ const physics = new BoardPhysics({
 
 const renderer = new BoardRenderer(canvas, physics, () => board.slots);
 rendererRef.current = renderer;
+const handledGooseSpawns = new Set<string>();
 
 const canvasScreenBounds = (): ScreenRect => {
   const bounds = canvas.getBoundingClientRect();
@@ -333,8 +334,21 @@ const canvasScreenBounds = (): ScreenRect => {
     height: bounds.height,
   };
 };
-const syncGooseState = (state: GooseState): void =>
-  physics.syncGoose(state, canvasScreenBounds());
+const syncGooseState = (state: GooseState): void => {
+  const bounds = canvasScreenBounds();
+  physics.syncGoose(state, bounds);
+  for (const request of state.spawnRequests) {
+    if (handledGooseSpawns.has(request.id)) continue;
+    handledGooseSpawns.add(request.id);
+    if (phase !== 'ready') continue;
+    const boardX = (request.x - bounds.x) * 880 / bounds.width;
+    if (physics.launch(boardX)) {
+      board.launch();
+      showStatus('GOOSE ADDED A MYSTERY-SEEKING BALL');
+      updateControls();
+    }
+  }
+};
 const stopGooseSubscription = window.sloppyKeyboard.onGooseState(syncGooseState);
 const publishBalls = window.setInterval(() => {
   const bounds = canvasScreenBounds();

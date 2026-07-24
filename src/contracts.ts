@@ -68,10 +68,15 @@ export interface GooseCarry {
   velocityY: number;
   released: boolean;
 }
+export interface GooseSpawnRequest {
+  id: string;
+  x: number;
+}
 export interface GooseState {
   protocolVersion: typeof GOOSE_PROTOCOL_VERSION;
   connected: boolean; receivedAt: number; colliders: GooseCollider[];
   carries: GooseCarry[];
+  spawnRequests: GooseSpawnRequest[];
   error?: string;
 }
 export interface EscapedBall { ball: BallSnapshot; workArea: ScreenRect }

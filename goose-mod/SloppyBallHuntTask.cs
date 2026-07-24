@@ -26,6 +26,21 @@ namespace SloppyKeyboardGoose
         }
         public override void RunTask(GooseEntity goose)
         {
+            try { RunTaskSafe(goose); }
+            catch (Exception error)
+            {
+                ModEntryPoint.WriteDiagnostic("Ball carry task cancelled after " + error);
+                Target = null;
+                if (goose != null) API.Goose.setTaskRoaming(goose);
+            }
+        }
+        void RunTaskSafe(GooseEntity goose)
+        {
+            if (goose == null || goose.currentTaskData == null)
+            {
+                if (goose != null) API.Goose.setTaskRoaming(goose);
+                return;
+            }
             var data = (HuntData)goose.currentTaskData;
             var target = Target;
             if (target == null || !ModEntryPoint.IsLive(target.Id) || Time.time - data.Started > 8f)

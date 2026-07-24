@@ -3,6 +3,7 @@ import {
   GooseCollider,
   GooseCarry,
   GooseState,
+  GooseSpawnRequest,
 } from './contracts';
 
 const finite = (value: unknown): value is number =>
@@ -41,11 +42,22 @@ export const parseGooseMessage = (line: string, now = Date.now()): GooseState | 
       carries.push(carry as unknown as GooseCarry);
     }
   }
+  const spawnRequests: GooseSpawnRequest[] = [];
+  if (message.spawnRequests !== undefined) {
+    if (!Array.isArray(message.spawnRequests)) return null;
+    for (const raw of message.spawnRequests) {
+      if (!raw || typeof raw !== 'object') return null;
+      const request = raw as Record<string, unknown>;
+      if (typeof request.id !== 'string' || !finite(request.x)) return null;
+      spawnRequests.push(request as unknown as GooseSpawnRequest);
+    }
+  }
   return {
     protocolVersion: GOOSE_PROTOCOL_VERSION,
     connected: true,
     receivedAt: now,
     colliders,
     carries,
+    spawnRequests,
   };
 };

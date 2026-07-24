@@ -1,10 +1,11 @@
 import { connect, Socket } from 'net';
 import { afterEach, describe, expect, it } from 'vitest';
 import type { GooseState } from './contracts';
-import { GOOSE_PIPE, GooseBridge } from './goose-bridge';
+import { GooseBridge } from './goose-bridge';
 
 const clients: Socket[] = [];
 let bridge: GooseBridge | null = null;
+const testPipe = `\\\\.\\pipe\\sloppy-keyboard-goose-test-${process.pid}`;
 afterEach(() => {
   clients.forEach((client) => client.destroy());
   clients.length = 0;
@@ -13,7 +14,7 @@ afterEach(() => {
 });
 
 const openClient = (): Promise<Socket> => new Promise((resolve, reject) => {
-  const client = connect(GOOSE_PIPE, () => resolve(client));
+  const client = connect(testPipe, () => resolve(client));
   client.once('error', reject);
   clients.push(client);
 });
@@ -21,7 +22,7 @@ const openClient = (): Promise<Socket> => new Promise((resolve, reject) => {
 describe('GooseBridge multiple instances', () => {
   it('keeps both clients connected and namespaces their colliders', async () => {
     const states: GooseState[] = [];
-    bridge = new GooseBridge((state) => states.push(state));
+    bridge = new GooseBridge((state) => states.push(state), testPipe);
     bridge.start();
     const first = await openClient();
     const second = await openClient();

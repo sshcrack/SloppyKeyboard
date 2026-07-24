@@ -21,6 +21,7 @@
   <ItemGroup>
     <Compile Include="ModEntryPoint.cs" />
     <Compile Include="SloppyBallHuntTask.cs" />
+    <Compile Include="SloppyBallPlaceTask.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

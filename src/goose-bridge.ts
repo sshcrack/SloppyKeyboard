@@ -23,7 +23,10 @@ export class GooseBridge {
   private readonly sessions = new Map<Socket, GooseSession>();
   private nextSessionId = 1;
 
-  constructor(private readonly publish: (state: GooseState) => void) {}
+  constructor(
+    private readonly publish: (state: GooseState) => void,
+    private readonly pipeName = GOOSE_PIPE,
+  ) {}
 
   start(): void {
     if (this.server) return;
@@ -31,7 +34,7 @@ export class GooseBridge {
     this.server.on('error', () => {
       if (this.sessions.size === 0) this.publishDisconnected('Named pipe unavailable');
     });
-    this.server.listen(GOOSE_PIPE);
+    this.server.listen(this.pipeName);
   }
 
   sendBalls(
@@ -136,12 +139,18 @@ export class GooseBridge {
         this.namespaceCollider(session.id, collider)));
     const carries = active.flatMap((session) =>
       (session.state as GooseState).carries);
+    const spawnRequests = active.flatMap((session) =>
+      (session.state as GooseState).spawnRequests.map((request) => ({
+        ...request,
+        id: `goose-${session.id}:${request.id}`,
+      })));
     this.publish({
       protocolVersion: GOOSE_PROTOCOL_VERSION,
       connected: true,
       receivedAt: Date.now(),
       colliders,
       carries,
+      spawnRequests,
       error,
     });
   }
@@ -160,6 +169,7 @@ export class GooseBridge {
       receivedAt: Date.now(),
       colliders: [],
       carries: [],
+      spawnRequests: [],
       error,
     });
   }

@@ -25,10 +25,19 @@ namespace SloppyKeyboardGoose
         static Thread pipeThread;
         static NamedPipeClientStream pipe;
         static StreamWriter writer;
-        static int pendingTask = -1;
+        static bool huntQueued;
         static long lastSnapshot;
         internal static float SlotX;
         internal static float SlotY;
+        static float slotWidth;
+        static readonly Random Random = new Random();
+        static long nextSpawnAt;
+        static string pendingSpawnId;
+        static float pendingSpawnX;
+        static bool placementRequested;
+        static bool placementQueued;
+        internal static float PlacementX;
+        internal static float PlacementY;
         static string carriedBallId;
         static string releasedBallId;
         static float carryX;
@@ -39,6 +48,7 @@ namespace SloppyKeyboardGoose
         void IMod.Init()
         {
             WriteDiagnostic("IMod.Init invoked; Sloppy Keyboard Goose mod loaded.");
+            nextSpawnAt = DateTime.UtcNow.Ticks / TimeSpan.TicksPerMillisecond + 7000;
             pipeThread = new Thread(PipeLoop) { IsBackground = true, Name = "Sloppy Keyboard pipe" };
             pipeThread.Start();
             InjectionPoints.PostTickEvent += PostTick;
@@ -46,7 +56,7 @@ namespace SloppyKeyboardGoose
 
         // This is deliberately independent of the named-pipe integration: it
         // proves that Desktop Goose discovered and initialized this DLL.
-        static void WriteDiagnostic(string message)
+        internal static void WriteDiagnostic(string message)
         {
             try
             {
@@ -84,13 +94,18 @@ namespace SloppyKeyboardGoose
             if (!json.Contains("\"type\":\"balls\"") || !json.Contains("\"protocolVersion\":1")) return;
             var found = new Dictionary<string, BallTarget>();
             var slot = Regex.Match(json, "\"mysterySlot\":\\{\"x\":(?<x>-?[0-9.]+),\"y\":(?<y>-?[0-9.]+),\"width\":(?<w>[0-9.]+),\"height\":(?<h>[0-9.]+)");
+            var board = Regex.Match(json, "\"boardBounds\":\\{\"x\":(?<x>-?[0-9.]+),\"y\":(?<y>-?[0-9.]+),\"width\":(?<w>[0-9.]+),\"height\":(?<h>[0-9.]+)");
             float sx, sy, sw, sh;
             if (slot.Success
                 && float.TryParse(slot.Groups["x"].Value, NumberStyles.Float, CultureInfo.InvariantCulture, out sx)
                 && float.TryParse(slot.Groups["y"].Value, NumberStyles.Float, CultureInfo.InvariantCulture, out sy)
                 && float.TryParse(slot.Groups["w"].Value, NumberStyles.Float, CultureInfo.InvariantCulture, out sw)
                 && float.TryParse(slot.Groups["h"].Value, NumberStyles.Float, CultureInfo.InvariantCulture, out sh))
-            { SlotX = sx + sw / 2; SlotY = sy + sh / 2; }
+            { SlotX = sx + sw / 2; SlotY = sy + sh / 2; slotWidth = sw; }
+            float boardY;
+            if (board.Success
+                && float.TryParse(board.Groups["y"].Value, NumberStyles.Float, CultureInfo.InvariantCulture, out boardY))
+                PlacementY = boardY + 26;
             foreach (Match match in Regex.Matches(json,
                 "\\{\"id\":\"(?<id>[^\"]+)\",\"x\":(?<x>-?[0-9.]+),\"y\":(?<y>-?[0-9.]+).*?\"huntEligible\":(?<hunt>true|false)"))
             {
@@ -110,7 +125,24 @@ namespace SloppyKeyboardGoose
 
         static void PostTick(GooseEntity goose)
         {
+            try { PostTickSafe(goose); }
+            catch (Exception error)
+            {
+                WriteDiagnostic("PostTick skipped after " + error);
+            }
+        }
+
+        static void PostTickSafe(GooseEntity goose)
+        {
+            if (goose == null) return;
             var now = DateTime.UtcNow.Ticks / TimeSpan.TicksPerMillisecond;
+            if (SlotX != 0 && PlacementY != 0 && now >= nextSpawnAt
+                && !placementRequested && pendingSpawnId == null)
+            {
+                placementRequested = true;
+                PlacementX = SlotX + (float)(Random.NextDouble() - 0.5) * slotWidth * 0.24f;
+                nextSpawnAt = now + Random.Next(7000, 14001);
+            }
             if (now - lastSnapshot >= 33)
             {
                 lastSnapshot = now;
@@ -123,14 +155,44 @@ namespace SloppyKeyboardGoose
                     nearest = Balls.Values.Where(ball => !ClaimedBalls.Contains(ball.Id))
                         .OrderBy(ball => DistanceSquared(goose.position.x, goose.position.y, ball.X, ball.Y)).FirstOrDefault();
             }
-            if (nearest == null) return;
-            if (pendingTask < 0) pendingTask = goose.currentTask;
-            // Wait until the built-in activity (including pulling a window) naturally changes task.
-            if (goose.currentTask == pendingTask) return;
+            var huntTask = API.TaskDatabase.getTaskIndexByID(SloppyBallHuntTask.TaskId);
+            var placementTask = API.TaskDatabase.getTaskIndexByID(SloppyBallPlaceTask.TaskId);
+            if (goose.currentTask == placementTask)
+            {
+                placementQueued = false;
+                return;
+            }
+            if (placementRequested && !placementQueued)
+            {
+                if (goose.taskIndexQueue == null)
+                {
+                    WriteDiagnostic("Goose task queue was null; ball placement was not queued.");
+                    return;
+                }
+                goose.taskIndexQueue.Add(placementTask);
+                placementQueued = true;
+            }
+            if (goose.currentTask == huntTask)
+            {
+                huntQueued = false;
+                var activeTarget = SloppyBallHuntTask.Target;
+                if (activeTarget != null && IsLive(activeTarget.Id))
+                    lock (Sync) ClaimedBalls.Add(activeTarget.Id);
+                return;
+            }
+            // Keep the selected target fresh while Goose finishes its current
+            // built-in activity, and put our task into Goose's real task queue.
             SloppyBallHuntTask.Target = nearest;
-            lock (Sync) ClaimedBalls.Add(nearest.Id);
-            API.Goose.setCurrentTaskByID(goose, SloppyBallHuntTask.TaskId, false);
-            pendingTask = -1;
+            if (nearest != null && !huntQueued)
+            {
+                if (goose.taskIndexQueue == null)
+                {
+                    WriteDiagnostic("Goose task queue was null; hunt was not queued.");
+                    return;
+                }
+                goose.taskIndexQueue.Add(huntTask);
+                huntQueued = true;
+            }
         }
 
         internal static bool IsLive(string id)
@@ -155,6 +217,20 @@ namespace SloppyKeyboardGoose
             carryVelocityY = goose.velocity.y;
         }
 
+        internal static void EmitPlacedBall()
+        {
+            var now = DateTime.UtcNow.Ticks / TimeSpan.TicksPerMillisecond;
+            pendingSpawnId = now.ToString(CultureInfo.InvariantCulture);
+            pendingSpawnX = PlacementX;
+            placementRequested = false;
+        }
+
+        internal static void CancelPlacement()
+        {
+            placementRequested = false;
+            placementQueued = false;
+        }
+
         static float DistanceSquared(float ax, float ay, float bx, float by)
         {
             var x = ax - bx; var y = ay - by; return x * x + y * y;
@@ -170,34 +246,45 @@ namespace SloppyKeyboardGoose
             colliders.Add(Circle("body", goose.position.x, goose.position.y, 22, goose.velocity.x, goose.velocity.y));
             colliders.Add(Circle("head", goose.position.x + (float)Math.Cos(goose.direction) * 24,
                 goose.position.y + (float)Math.Sin(goose.direction) * 24, 14, goose.velocity.x, goose.velocity.y));
-            foreach (Form form in Application.OpenForms)
+            var forms = SnapshotOpenForms();
+            foreach (var form in forms)
             {
-                if (!form.Visible || form.IsDisposed || !IsGooseWindow(form)) continue;
-                var bounds = form.Bounds;
-                var handle = form.Handle.ToInt64();
-                WindowSample previous;
-                var vx = 0f; var vy = 0f;
-                if (Windows.TryGetValue(handle, out previous))
+                try
                 {
-                    var frames = Math.Max(1, (now - previous.At) / 16.6667);
-                    vx = (float)((bounds.X - previous.X) / frames);
-                    vy = (float)((bounds.Y - previous.Y) / frames);
+                    if (form == null || !form.Visible || form.IsDisposed || !IsGooseWindow(form)) continue;
+                    var bounds = form.Bounds;
+                    var handle = form.Handle.ToInt64();
+                    WindowSample previous;
+                    var vx = 0f; var vy = 0f;
+                    if (Windows.TryGetValue(handle, out previous))
+                    {
+                        var frames = Math.Max(1, (now - previous.At) / 16.6667);
+                        vx = (float)((bounds.X - previous.X) / frames);
+                        vy = (float)((bounds.Y - previous.Y) / frames);
+                    }
+                    Windows[handle] = new WindowSample(bounds.X, bounds.Y, now);
+                    colliders.Add(String.Format(CultureInfo.InvariantCulture,
+                        "{{\"id\":\"window-{0}\",\"kind\":\"window\",\"bounds\":{{\"x\":{1},\"y\":{2},\"width\":{3},\"height\":{4}}},\"velocityX\":{5},\"velocityY\":{6}}}",
+                        handle, bounds.X, bounds.Y, bounds.Width, bounds.Height, vx, vy));
                 }
-                Windows[handle] = new WindowSample(bounds.X, bounds.Y, now);
-                colliders.Add(String.Format(CultureInfo.InvariantCulture,
-                    "{{\"id\":\"window-{0}\",\"kind\":\"window\",\"bounds\":{{\"x\":{1},\"y\":{2},\"width\":{3},\"height\":{4}}},\"velocityX\":{5},\"velocityY\":{6}}}",
-                    handle, bounds.X, bounds.Y, bounds.Width, bounds.Height, vx, vy));
+                catch (Exception error) { WriteDiagnostic("Window snapshot skipped after " + error); }
             }
             foreach (var closed in Windows.Where(item => now - item.Value.At > 100).Select(item => item.Key).ToArray())
                 Windows.Remove(closed);
             var carries = new List<string>();
             if (carriedBallId != null) carries.Add(CarryJson(carriedBallId, false));
             if (releasedBallId != null) carries.Add(CarryJson(releasedBallId, true));
+            var spawns = new List<string>();
+            if (pendingSpawnId != null)
+                spawns.Add(String.Format(CultureInfo.InvariantCulture,
+                    "{{\"id\":\"{0}\",\"x\":{1}}}", pendingSpawnId, pendingSpawnX));
             try
             {
                 output.WriteLine("{\"protocolVersion\":1,\"colliders\":[" + String.Join(",", colliders)
-                    + "],\"carries\":[" + String.Join(",", carries) + "]}");
+                    + "],\"carries\":[" + String.Join(",", carries)
+                    + "],\"spawnRequests\":[" + String.Join(",", spawns) + "]}");
                 releasedBallId = null;
+                pendingSpawnId = null;
             }
             catch { }
         }
@@ -206,6 +293,26 @@ namespace SloppyKeyboardGoose
         {
             var name = (form.GetType().Name + " " + form.Name + " " + form.Text).ToLowerInvariant();
             return name.Contains("meme") || name.Contains("notepad") || name.Contains("donat");
+        }
+
+        static Form[] SnapshotOpenForms()
+        {
+            var forms = new List<Form>();
+            try
+            {
+                var count = Application.OpenForms.Count;
+                for (var index = 0; index < count; index++)
+                {
+                    try
+                    {
+                        var form = Application.OpenForms[index];
+                        if (form != null) forms.Add(form);
+                    }
+                    catch (ArgumentOutOfRangeException) { break; }
+                }
+            }
+            catch (Exception error) { WriteDiagnostic("OpenForms snapshot skipped after " + error); }
+            return forms.ToArray();
         }
 
         static string Circle(string id, float x, float y, float radius, float vx, float vy)
