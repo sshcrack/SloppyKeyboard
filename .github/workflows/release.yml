@@ -1,0 +1,80 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Build Windows release
+    runs-on: windows-latest
+
+    steps:
+      - name: Check out tagged revision
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install video downloader
+        run: python -m pip install --disable-pip-version-check yt-dlp
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Prepare bundled assets
+        run: |
+          npm run build:native
+          node scripts/download-shorts-assets.js
+
+      - name: Test release revision
+        run: |
+          npm test
+          npm run typecheck
+          npm run lint
+
+      - name: Build installer and portable ZIP
+        run: npm run make -- --platform=win32 --arch=x64
+
+      - name: Create GitHub Release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $assets = Get-ChildItem "out/make" -Recurse -File |
+            Where-Object { $_.Extension -in ".exe", ".zip" }
+
+          if ($assets.Count -lt 2) {
+            throw "Expected a Windows installer and portable ZIP, found $($assets.Count) release asset(s)."
+          }
+
+          $assetPaths = $assets.FullName
+          gh release view "$env:GITHUB_REF_NAME" --repo "$env:GITHUB_REPOSITORY" *> $null
+
+          if ($LASTEXITCODE -eq 0) {
+            gh release upload "$env:GITHUB_REF_NAME" $assetPaths `
+              --repo "$env:GITHUB_REPOSITORY" `
+              --clobber
+          } else {
+            gh release create "$env:GITHUB_REF_NAME" $assetPaths `
+              --repo "$env:GITHUB_REPOSITORY" `
+              --verify-tag `
+              --title "Sloppy Keyboard $env:GITHUB_REF_NAME" `
+              --generate-notes
+          }

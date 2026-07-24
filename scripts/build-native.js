@@ -16,13 +16,24 @@ const candidates = [
 ];
 
 function findVcvars() {
+  const editions = ['BuildTools', 'Enterprise', 'Professional', 'Community'];
   for (const base of candidates) {
     const vsDir = path.join(base, 'Microsoft Visual Studio');
     try {
       const versions = fs.readdirSync(vsDir);
       for (const ver of versions) {
-        const vcvars = path.join(vsDir, ver, 'BuildTools', 'VC', 'Auxiliary', 'Build', 'vcvars64.bat');
-        if (fs.existsSync(vcvars)) return vcvars;
+        for (const edition of editions) {
+          const vcvars = path.join(
+            vsDir,
+            ver,
+            edition,
+            'VC',
+            'Auxiliary',
+            'Build',
+            'vcvars64.bat',
+          );
+          if (fs.existsSync(vcvars)) return vcvars;
+        }
       }
     } catch {}
   }

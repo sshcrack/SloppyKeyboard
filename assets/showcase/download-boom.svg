@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="280" viewBox="0 0 960 280" role="img" aria-labelledby="title desc">
+  <title id="title">Download Sloppy Keyboard</title>
+  <desc id="desc">A loud, jagged, old-web explosion advertising the latest release.</desc>
+
+  <defs>
+    <pattern id="checks" width="24" height="24" patternUnits="userSpaceOnUse">
+      <rect width="12" height="12" fill="#00ffff"/>
+      <rect x="12" y="12" width="12" height="12" fill="#00ffff"/>
+      <rect x="12" width="12" height="12" fill="#000080"/>
+      <rect y="12" width="12" height="12" fill="#000080"/>
+    </pattern>
+    <filter id="rough-shadow" x="-20%" y="-30%" width="150%" height="170%">
+      <feOffset dx="8" dy="9" result="offset"/>
+      <feFlood flood-color="#000000"/>
+      <feComposite in2="offset" operator="in"/>
+      <feMerge>
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <path d="M5 48H230L205 232H5Z" fill="url(#checks)" stroke="#000" stroke-width="6"/>
+  <path d="M955 48H730L755 232H955Z" fill="url(#checks)" stroke="#000" stroke-width="6"/>
+
+  <g fill="#ff00ff" stroke="#000" stroke-width="5">
+    <circle cx="64" cy="35" r="19"/>
+    <circle cx="110" cy="246" r="25"/>
+    <circle cx="892" cy="34" r="23"/>
+    <circle cx="850" cy="250" r="18"/>
+  </g>
+
+  <g filter="url(#rough-shadow)">
+    <polygon
+      points="480,5 515,49 571,20 584,72 649,59 635,111 705,120 661,158 718,194 648,200 657,260 593,236 564,276 521,233 480,273 442,232 393,275 371,226 302,254 316,198 246,188 301,153 252,111 321,106 303,48 372,66 389,15 439,51"
+      fill="#ff1a00"
+      stroke="#000000"
+      stroke-width="8"
+      stroke-linejoin="miter"
+    />
+    <polygon
+      points="480,32 509,68 553,47 560,90 610,82 596,122 646,137 603,160 634,199 584,192 578,235 539,211 507,241 480,205 445,237 425,199 378,219 384,176 336,155 383,135 362,96 411,100 423,58 456,82"
+      fill="#ffff00"
+      stroke="#ff00ff"
+      stroke-width="7"
+      stroke-linejoin="miter"
+    />
+  </g>
+
+  <g transform="rotate(-7 480 140)" text-anchor="middle" font-family="Impact, Haettenschweiler, sans-serif">
+    <text x="486" y="103" font-size="34" fill="#000000">LATEST RELEASE!</text>
+    <text x="480" y="97" font-size="34" fill="#0000ff">LATEST RELEASE!</text>
+
+    <text x="490" y="166" font-size="62" fill="#000000">DOWNLOAD NOW!!!</text>
+    <text x="480" y="156" font-size="62" fill="#ff0000" stroke="#000000" stroke-width="2">DOWNLOAD NOW!!!</text>
+
+    <text x="484" y="202" font-size="24" fill="#000000">INSTALLER + PORTABLE ZIP</text>
+    <text x="480" y="198" font-size="24" fill="#008000">INSTALLER + PORTABLE ZIP</text>
+  </g>
+
+  <g font-family="'Courier New', monospace" font-weight="bold" text-anchor="middle">
+    <rect x="18" y="102" width="190" height="66" fill="#c0c0c0" stroke="#fff" stroke-width="5"/>
+    <path d="M208 102V168H18" fill="none" stroke="#000" stroke-width="6"/>
+    <text x="113" y="130" font-size="17" fill="#000">100% KEYBOARD</text>
+    <text x="113" y="153" font-size="17" fill="#ff0000">CLICK HERE!!!</text>
+
+    <rect x="752" y="102" width="190" height="66" fill="#c0c0c0" stroke="#fff" stroke-width="5"/>
+    <path d="M942 102V168H752" fill="none" stroke="#000" stroke-width="6"/>
+    <text x="847" y="130" font-size="17" fill="#000">NO FLOPPY</text>
+    <text x="847" y="153" font-size="17" fill="#0000ff">REQUIRED!</text>
+  </g>
+</svg>

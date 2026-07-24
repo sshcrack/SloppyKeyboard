@@ -35,6 +35,7 @@ declare const MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY: string;
 let mainWindow: BrowserWindow | null = null;
 let activeMinigame = false;
 const debugMinigames = app.commandLine.hasSwitch('debug-minigames');
+const keyboardBlockerEnabled = !app.commandLine.hasSwitch('disable-keyboard-blocker');
 
 if (require('electron-squirrel-startup')) {
   app.quit();
@@ -100,7 +101,9 @@ const runMinigame = async (id: unknown): Promise<MinigameResult> => {
 
 app.whenReady().then(() => {
   ipcMain.handle(IPC_TYPE_CHARACTER, (_event, character: string) =>
-    typeWithHookTemporarilyDisabled(() => typeCharacter(character)),
+    keyboardBlockerEnabled
+      ? typeWithHookTemporarilyDisabled(() => typeCharacter(character))
+      : typeCharacter(character),
   );
   ipcMain.handle(
     IPC_PRESS_SPECIAL_KEY,
@@ -108,9 +111,10 @@ app.whenReady().then(() => {
       if (!SPECIAL_KEYS.includes(key as SpecialKey)) {
         return { ok: false, error: 'Unknown special key.' };
       }
-      return typeWithHookTemporarilyDisabled(
-        () => pressSpecialKey(key as SpecialKey),
-      );
+      const pressKey = () => pressSpecialKey(key as SpecialKey);
+      return keyboardBlockerEnabled
+        ? typeWithHookTemporarilyDisabled(pressKey)
+        : pressKey();
     },
   );
   ipcMain.handle(IPC_DRAW_MINIGAME, () => drawMinigame());
@@ -133,7 +137,7 @@ app.whenReady().then(() => {
   mainWindow.once('ready-to-show', () => {
     void ensureDesktopGoosePath(mainWindow as BrowserWindow);
   });
-  installHook();
+  if (keyboardBlockerEnabled) installHook();
 });
 
 app.on('window-all-closed', () => app.quit());
