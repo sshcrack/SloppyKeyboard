@@ -14,11 +14,15 @@ import { rendererConfig } from './webpack.renderer.config';
 const config: ForgeConfig = {
   packagerConfig: {
     asar: true,
+    icon: './assets/icon/sloppy-keyboard.ico',
     extraResource: ['./native/keyboard-blocker.exe', './assets/shorts'],
   },
   rebuildConfig: {},
   makers: [
-    new MakerSquirrel({}),
+    new MakerSquirrel({
+      name: 'SloppyKeyboard',
+      setupIcon: './assets/icon/sloppy-keyboard.ico',
+    }),
     new MakerZIP({}, ['win32']),
     new MakerRpm({}),
     new MakerDeb({}),

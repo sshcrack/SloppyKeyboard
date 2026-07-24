@@ -3,6 +3,7 @@ import {
   BrowserWindow,
   ipcMain,
 } from 'electron';
+import { join } from 'path';
 import {
   IPC_CLOSE_WINDOW,
   IPC_DRAW_MINIGAME,
@@ -36,10 +37,18 @@ let mainWindow: BrowserWindow | null = null;
 let activeMinigame = false;
 const debugMinigames = app.commandLine.hasSwitch('debug-minigames');
 const keyboardBlockerEnabled = !app.commandLine.hasSwitch('disable-keyboard-blocker');
+const appIconPath = join(
+  app.getAppPath(),
+  'assets',
+  'icon',
+  'sloppy-keyboard.ico',
+);
 
 if (require('electron-squirrel-startup')) {
   app.quit();
 }
+
+app.setAppUserModelId('com.squirrel.SloppyKeyboard.SloppyKeyboard');
 
 const createWindow = (): void => {
   mainWindow = new BrowserWindow({
@@ -58,6 +67,7 @@ const createWindow = (): void => {
     focusable: false,
     skipTaskbar: true,
     show: false,
+    icon: appIconPath,
     backgroundColor: '#efe3ca',
     webPreferences: {
       preload: MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY,
