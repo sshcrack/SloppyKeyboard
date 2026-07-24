@@ -48,10 +48,11 @@ export type DesktopEffect =
   | { kind: 'fracture'; x: number; y: number }
   | { kind: 'cameo'; x: number; y: number }
   | { kind: 'cursor-goose'; x: number; y: number }
+  | { kind: 'steve-dig'; x: number; y: number }
   | { kind: 'omen-title' }
   | { kind: 'eyes'; x: number; y: number; side: 'left' | 'right' };
 export const DEBUG_SURPRISES = [
-  'fallen-balls', 'fracture', 'cameo', 'pixel-goose', 'omen-title', 'eyes',
+  'fallen-balls', 'fracture', 'cameo', 'pixel-goose', 'steve-dig', 'omen-title', 'eyes',
 ] as const;
 export type DebugSurprise = typeof DEBUG_SURPRISES[number];
 

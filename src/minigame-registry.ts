@@ -470,7 +470,7 @@ const runCupShuffle = ({ mainWindow, desktopEffect }: MinigameContext): Promise<
 
 const runCupAction = async (cup: number, effect: (effect: DesktopEffect) => void): Promise<void> => {
   const position = await mouse.getPosition().catch(() => new Point(0, 0));
-  if (cup === 0) { effect({ kind: 'cursor-goose', x: position.x, y: position.y }); await wait(5_000); return; }
+  if (cup === 0) { effect({ kind: 'cursor-goose', x: position.x, y: position.y }); await wait(1_100); return; }
   if (cup === 1) {
     for (let step = 0; step < 24; step += 1) {
       const angle = step * Math.PI / 4; const radius = 8 + step * 2;
@@ -480,8 +480,8 @@ const runCupAction = async (cup: number, effect: (effect: DesktopEffect) => void
     await mouse.setPosition(position).catch((): void => undefined); return;
   }
   if (cup === 2) { effect({ kind: 'balls', x: position.x, y: position.y, count: 15 }); await wait(2_000); return; }
-  if (cup === 3) { effect({ kind: 'fracture', x: position.x, y: position.y }); await wait(900); return; }
-  effect({ kind: 'cameo', x: position.x, y: position.y }); await wait(700);
+  if (cup === 3) { effect({ kind: 'fracture', x: position.x, y: position.y }); await wait(4_200); return; }
+  effect({ kind: 'cameo', x: position.x, y: position.y }); await wait(1_100);
 };
 
 const descriptors = new Map(MINIGAMES.map((game) => [game.id, game]));

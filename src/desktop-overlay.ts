@@ -12,6 +12,8 @@ const effects = document.querySelector<HTMLDivElement>('#effects') as HTMLDivEle
 // webpack copies this project-bound alpha asset into the renderer bundle.
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const eyesAsset = require('../assets/omen/eyes-open-small.png') as string;
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const maskAsset = require('../assets/jumpscares/porcelain-mask-small.png') as string;
 let last = performance.now();
 
 const local = (x: number, y: number): { x: number; y: number } => ({
@@ -80,11 +82,39 @@ effectStyle.textContent = `
 .cursor-goose{position:fixed;width:150px;height:130px;animation:goose-arrival 5s steps(10,end) forwards}.goose-body{position:absolute;left:38px;top:55px;width:72px;height:48px;background:#f7f7e8;border:5px solid #17170d;border-radius:52% 45% 48% 52%;box-shadow:inset -9px -7px #b8b8aa,5px 5px #0005}.goose-neck{position:absolute;left:80px;top:16px;width:24px;height:62px;background:#f7f7e8;border:5px solid #17170d;border-bottom:0;border-radius:45% 45% 0 0;transform:rotate(8deg)}.goose-head{position:absolute;left:76px;top:7px;width:43px;height:31px;background:#f7f7e8;border:5px solid #17170d;border-radius:50%}.goose-head:before{content:"";position:absolute;right:7px;top:6px;width:5px;height:5px;background:#000}.goose-head:after{content:"";position:absolute;right:-26px;top:14px;width:27px;height:10px;background:#f39800;border:4px solid #17170d;border-left:0}.goose-leg{position:absolute;top:100px;width:5px;height:22px;background:#e98800}.goose-leg.one{left:62px}.goose-leg.two{left:91px}.peck{position:absolute;right:0;top:28px;color:#ff0;font:900 22px monospace;text-shadow:2px 2px #000;animation:peck .45s steps(2,end) 7}
 .eyes{position:fixed;width:375px;height:125px;background:url('${eyesAsset}') center/contain no-repeat;animation:eyes 3.2s ease-in-out forwards}.eyes.blink{animation:eyes 3.2s ease-in-out forwards,blink .16s step-end 2 1.15s}
 @keyframes omen-title{0%{opacity:0;transform:scale(.55)}28%,70%{opacity:1;transform:scale(1.2)}100%{opacity:0;transform:scale(1.75)}}@keyframes rupture{0%{opacity:0;transform:scale(.1) rotate(8deg)}25%{opacity:1;transform:scale(1.08) rotate(-2deg)}70%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(1.5)}}@keyframes creature-trip{0%{opacity:0;transform:translate(-180px,60px) rotate(-14deg)}22%{opacity:1;transform:translate(0) rotate(0)}62%{transform:translate(0) rotate(0)}78%{transform:translate(15px,-8px) rotate(9deg)}100%{opacity:0;transform:translate(210px,-90px) rotate(25deg)}}@keyframes goose-arrival{0%{opacity:0;transform:translate(-130px,80px) rotate(-12deg)}12%,82%{opacity:1;transform:translate(0)}88%{transform:translate(5px,10px) rotate(8deg)}100%{opacity:0;transform:translate(180px,-80px)}}@keyframes peck{50%{transform:scale(1.7) rotate(18deg)}}@keyframes eyes{0%{opacity:0;transform:translateX(var(--slide))}18%,72%{opacity:1;transform:translateX(0)}100%{opacity:0;transform:translateX(var(--slide))}}@keyframes blink{50%{clip-path:inset(45% 0)}}`;
+effectStyle.textContent += `
+.omen-title{background:radial-gradient(circle,#06060a66,#000c);overflow:hidden}.omen-title span{position:relative;background:#080808;border-color:#a9a9a9 #202020 #202020 #a9a9a9;color:#ddd;letter-spacing:.16em;animation:omen-chroma 1.55s steps(8,end)}.omen-title span:before,.omen-title span:after{content:attr(data-text);position:absolute;inset:22px 34px;mix-blend-mode:screen;opacity:.75}.omen-title span:before{color:#00eaff;transform:translate(-5px,2px);clip-path:inset(0 0 48%)}.omen-title span:after{color:#ff174d;transform:translate(6px,-2px);clip-path:inset(52% 0 0)}
+.fracture{inset:0;width:auto;height:auto;filter:none;animation:none;overflow:hidden}.fracture:before{display:none}.fracture:after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(0deg,#0000 0 5px,#fff1 6px),linear-gradient(90deg,#f004,#0000 35%,#0ff4 70%,#0000);mix-blend-mode:screen;opacity:0;animation:screen-corrupt 4.1s steps(9,end)}.crack-layer{position:absolute;inset:0;width:100%;height:100%;filter:drop-shadow(1px 1px #000)}.clippy-smash{position:absolute;left:calc(var(--hit-x) - 86px);top:calc(var(--hit-y) - 150px);width:172px;height:180px;animation:clippy-enter 4.1s ease-in-out forwards}.clip-body{position:absolute;left:48px;top:30px;width:72px;height:108px;border:13px solid #a8adb7;border-radius:46%;box-shadow:inset 4px 3px #f4f7ff,5px 6px #0005}.clip-body:before,.clip-body:after{content:"";position:absolute;top:23px;width:19px;height:25px;background:#fff;border:3px solid #111;border-radius:50%}.clip-body:before{left:7px}.clip-body:after{right:7px}.clip-mouth{position:absolute;left:72px;top:92px;width:27px;height:11px;border-bottom:4px solid #111;border-radius:50%}.hammer{position:absolute;left:104px;top:18px;width:18px;height:105px;background:#6b3b18;border:4px solid #1b0c03;transform-origin:9px 93px;animation:hammer-swing 4.1s cubic-bezier(.3,.8,.2,1) forwards}.hammer:before{content:"";position:absolute;left:-28px;top:-14px;width:72px;height:31px;background:linear-gradient(#ddd,#777);border:5px solid #171717}.clippy-caption{position:absolute;left:-36px;top:-13px;padding:5px 7px;background:#ffffc0;border:2px solid #111;box-shadow:3px 3px #0005;font:bold 10px "MS Sans Serif",Tahoma,sans-serif;white-space:nowrap}
+.cameo,.cursor-goose{inset:0;width:auto;height:auto;background:#000;animation:jumpscare 1.05s steps(5,end) forwards}.cameo:before,.cursor-goose:before{content:"";position:absolute;inset:-12%;background-position:center;background-repeat:no-repeat;background-size:contain;filter:contrast(1.35) drop-shadow(0 0 35px #fff5)}.cameo:before{background-image:url('${maskAsset}')}.cursor-goose:before{background-image:url('${eyesAsset}');background-size:105% auto;filter:contrast(1.7) grayscale(1)}.cameo:after,.cursor-goose:after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(0deg,#0000 0 4px,#fff2 5px),linear-gradient(90deg,#f004,#0000,#0ff4);mix-blend-mode:screen;animation:jumpscare-static .12s steps(2,end) infinite}
+.steve-dig{position:fixed;inset:0}.mine-hole{position:absolute;left:calc(var(--dig-x) - 96px);top:calc(var(--dig-y) - 72px);width:192px;height:144px;background:#020306;box-shadow:inset 0 0 35px #000,0 0 0 5px #111;clip-path:polygon(0 0,100% 0,100% 100%,0 100%);animation:hole-cycle 5s steps(6,end) forwards}.mine-hole i{position:absolute;width:48px;height:48px;background:linear-gradient(135deg,#777,#333);border:3px solid #111;animation:block-break 2.4s steps(5,end) forwards}.mine-hole i:nth-child(2){left:48px;animation-delay:.12s}.mine-hole i:nth-child(3){left:96px;animation-delay:.24s}.mine-hole i:nth-child(4){left:144px;animation-delay:.36s}.mine-hole i:nth-child(5){top:48px;animation-delay:.48s}.mine-hole i:nth-child(6){left:48px;top:48px;animation-delay:.6s}.mine-hole i:nth-child(7){left:96px;top:48px;animation-delay:.72s}.mine-hole i:nth-child(8){left:144px;top:48px;animation-delay:.84s}.steve{position:absolute;z-index:3;left:calc(var(--dig-x) - 34px);top:calc(var(--dig-y) - 190px);width:68px;height:150px;image-rendering:pixelated;animation:steve-drop 5s steps(12,end) forwards}.steve-head{position:absolute;left:10px;width:48px;height:48px;background:#b97850;border:6px solid #3b241b;box-shadow:inset 0 12px #38251f}.steve-head:before{content:"▪  ▪";position:absolute;top:16px;left:7px;color:#bde9ff;font:bold 17px monospace}.steve-body{position:absolute;left:8px;top:48px;width:52px;height:58px;background:#18a9a9;border:6px solid #075d68}.steve-leg{position:absolute;top:102px;width:25px;height:46px;background:#3347a6;border:5px solid #17225c}.steve-leg.a{left:8px}.steve-leg.b{right:8px}.pickaxe{position:absolute;left:50px;top:48px;width:8px;height:92px;background:#75401d;transform-origin:4px 75px;animation:pick-swing .42s steps(3,end) 7}.pickaxe:before{content:"";position:absolute;left:-29px;top:-6px;width:62px;height:12px;background:#aaa;border:3px solid #222}
+@keyframes omen-chroma{0%,100%{transform:skew(0)}20%{transform:skew(-4deg) translateX(-3px)}24%{transform:skew(5deg) translateX(4px)}62%{filter:blur(0)}64%{filter:blur(2px)}}@keyframes clippy-enter{0%{opacity:0;transform:translate(-180px,-80px) rotate(-20deg)}18%,75%{opacity:1;transform:translate(0)}88%{opacity:1;transform:translate(20px,-8px)}100%{opacity:0;transform:translate(240px,-120px)}}@keyframes hammer-swing{0%,25%{transform:rotate(-62deg)}42%{transform:rotate(36deg)}46%,100%{transform:rotate(18deg)}}@keyframes screen-corrupt{0%,38%{opacity:0}42%{opacity:1;transform:translateX(18px)}48%{transform:translateX(-12px)}60%,86%{opacity:.8;transform:none}100%{opacity:0}}@keyframes jumpscare{0%{opacity:0;transform:scale(.15)}8%{opacity:1;transform:scale(1.18)}18%{transform:scale(.98) translate(7px,-4px)}72%{opacity:1;transform:scale(1.04)}100%{opacity:0;transform:scale(1.4)}}@keyframes jumpscare-static{50%{transform:translate(7px,-3px);filter:hue-rotate(90deg)}}@keyframes pick-swing{50%{transform:rotate(-85deg)}}@keyframes block-break{0%{filter:brightness(1)}20%{background:repeating-linear-gradient(45deg,#777 0 8px,#111 9px 11px)}60%{transform:scale(.85);opacity:1}100%{transform:scale(0);opacity:0}}@keyframes steve-drop{0%{opacity:0;transform:translateX(-220px)}12%,55%{opacity:1;transform:translateX(0)}72%{transform:translateY(15px)}88%{opacity:1;transform:translateY(180px) scale(.7)}100%{opacity:0;transform:translateY(210px) scale(.5)}}@keyframes hole-cycle{0%,12%{transform:scale(0);opacity:0}42%,82%{transform:scale(1);opacity:1}100%{transform:scale(0);opacity:0}}`;
 document.head.append(effectStyle);
+
+const drawCracks = (canvasElement: HTMLCanvasElement, x: number, y: number): void => {
+  const ratio = devicePixelRatio || 1;
+  canvasElement.width = innerWidth * ratio; canvasElement.height = innerHeight * ratio;
+  const crack = canvasElement.getContext('2d') as CanvasRenderingContext2D;
+  crack.scale(ratio, ratio); crack.lineCap = 'round'; crack.lineJoin = 'round';
+  const branch = (startX: number, startY: number, angle: number, length: number, depth: number): void => {
+    let px = startX; let py = startY;
+    crack.beginPath(); crack.moveTo(px, py);
+    for (let step = 0; step < 7; step += 1) {
+      angle += (Math.random() - .5) * .42;
+      const segment = length * (.09 + Math.random() * .08);
+      px += Math.cos(angle) * segment; py += Math.sin(angle) * segment;
+      crack.lineTo(px, py);
+      if (depth > 0 && step > 1 && Math.random() < .34) branch(px, py, angle + (Math.random() < .5 ? -1 : 1) * (.45 + Math.random()), length * .48, depth - 1);
+    }
+    crack.strokeStyle = '#050505'; crack.lineWidth = 4 - depth; crack.stroke();
+    crack.strokeStyle = '#eaf7ff'; crack.lineWidth = 1.2; crack.stroke();
+  };
+  crack.fillStyle = '#fff'; crack.beginPath(); crack.arc(x, y, 7, 0, Math.PI * 2); crack.fill();
+  for (let ray = 0; ray < 17; ray += 1) branch(x, y, ray / 17 * Math.PI * 2 + Math.random() * .24, 220 + Math.random() * 520, 2);
+};
 
 const addEffect = (effect: DesktopEffect): void => {
   if (effect.kind === 'omen-title') {
-    const title = document.createElement('div'); title.className = 'omen-title'; title.innerHTML = '<span>SOMETHING CHANGED...</span>';
+    const title = document.createElement('div'); title.className = 'omen-title'; title.innerHTML = '<span data-text="SOMETHING CHANGED...">SOMETHING CHANGED...</span>';
     effects.append(title); setTimeout(() => title.remove(), 1700); return;
   }
   if (effect.kind === 'eyes') {
@@ -111,22 +141,20 @@ const addEffect = (effect: DesktopEffect): void => {
     } return;
   }
   item.className = effect.kind;
-  item.style.left = `${effect.x - window.screenX - 140}px`; item.style.top = `${effect.y - window.screenY - 140}px`;
   if (effect.kind === 'fracture') {
-    const colors = ['#ff006e', '#00f5ff', '#fff', '#ffe600', '#0066ff', '#fff'];
-    item.replaceChildren(...colors.map((color, index) => {
-      const shard = document.createElement('i');
-      shard.style.setProperty('--color', color); shard.style.setProperty('--angle', `${index * 31 + 12}deg`);
-      shard.style.setProperty('--clip', `${index % 2 ? '100% 0,86% 100%' : '100% 100%,0 78%'}`);
-      shard.style.setProperty('--x', `${(index % 3 - 1) * 7}px`); shard.style.setProperty('--y', `${(index % 2) * 8 - 4}px`);
-      return shard;
-    }));
-  } else if (effect.kind === 'cameo') {
-    item.innerHTML = '<span class="speech">WRONG DESKTOP, SORRY</span><i class="leg a"></i><i class="leg b"></i><i class="critter"></i>';
-  } else if (effect.kind === 'cursor-goose') {
-    item.innerHTML = '<i class="goose-body"></i><i class="goose-neck"></i><i class="goose-head"></i><i class="goose-leg one"></i><i class="goose-leg two"></i><b class="peck">!!</b>';
+    const hitX = effect.x - window.screenX; const hitY = effect.y - window.screenY;
+    item.style.setProperty('--hit-x', `${hitX}px`); item.style.setProperty('--hit-y', `${hitY}px`);
+    item.innerHTML = '<canvas class="crack-layer"></canvas><div class="clippy-smash"><span class="clippy-caption">It looks like you\'re using a screen.</span><i class="clip-body"></i><i class="clip-mouth"></i><i class="hammer"></i></div>';
+    effects.append(item);
+    setTimeout(() => drawCracks(item.querySelector('.crack-layer') as HTMLCanvasElement, hitX, hitY), 1_560);
+    setTimeout(() => item.remove(), 4_200); return;
   }
-  effects.append(item); setTimeout(() => item.remove(), effect.kind === 'cursor-goose' ? 5100 : 950);
+  if (effect.kind === 'steve-dig') {
+    item.style.setProperty('--dig-x', `${effect.x - window.screenX}px`); item.style.setProperty('--dig-y', `${effect.y - window.screenY}px`);
+    item.innerHTML = `<div class="mine-hole">${'<i></i>'.repeat(8)}</div><div class="steve"><i class="steve-head"></i><i class="steve-body"></i><i class="steve-leg a"></i><i class="steve-leg b"></i><i class="pickaxe"></i></div>`;
+    effects.append(item); setTimeout(() => item.remove(), 5_100); return;
+  }
+  effects.append(item); setTimeout(() => item.remove(), 1_100);
 };
 // The desktop overlay is intentionally click-through; all effects are visual only.
 window.sloppyKeyboard.onDesktopEffect(addEffect);

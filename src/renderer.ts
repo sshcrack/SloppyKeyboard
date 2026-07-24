@@ -271,8 +271,9 @@ void window.sloppyKeyboard.debugMode().then((enabled) => {
     debugButtons.append(button);
   }
   const surprises: Array<[DebugSurprise, string]> = [
-    ['fallen-balls', 'Fallen balls'], ['fracture', 'Desktop fracture'],
-    ['cameo', 'Pixel creature'], ['pixel-goose', 'Pixel Goose cursor'],
+    ['fallen-balls', 'Fallen balls'], ['fracture', 'Clippy hammer smash'],
+    ['cameo', 'Mask jumpscare'], ['pixel-goose', 'Eyes jumpscare'],
+    ['steve-dig', 'Steve digs through'],
     ['omen-title', 'Omen title'], ['eyes', 'Eyes now'],
   ];
   for (const [id, label] of surprises) {

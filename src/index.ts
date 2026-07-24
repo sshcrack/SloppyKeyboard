@@ -65,6 +65,7 @@ let activeMinigame = false;
 const surprises = new SurpriseScheduler();
 let omenUsed = false;
 let omenTimer: NodeJS.Timeout | undefined;
+let naturalTimer: NodeJS.Timeout | undefined;
 const debugMinigames = app.commandLine.hasSwitch('debug-minigames');
 const keyboardBlockerEnabled = !app.commandLine.hasSwitch('disable-keyboard-blocker');
 const appIconPath = join(
@@ -82,6 +83,7 @@ const shutDown = (): void => {
   closeDesktopGoose();
   uninstallHook();
   if (omenTimer) clearTimeout(omenTimer);
+  if (naturalTimer) clearInterval(naturalTimer);
 };
 
 if (require('electron-squirrel-startup')) {
@@ -177,7 +179,7 @@ const scheduleOmen = (): void => {
   if (omenUsed || omenTimer) return;
   omenTimer = setTimeout(() => {
     omenTimer = undefined;
-    if (activeMinigame || surprises.busy) { scheduleOmen(); return; }
+    if (activeMinigame || !surprises.begin('omen')) { scheduleOmen(); return; }
     omenUsed = true;
     desktopEffect({ kind: 'omen-title' });
     setTimeout(() => {
@@ -186,6 +188,7 @@ const scheduleOmen = (): void => {
       const leftDistance = point.x - display.workArea.x;
       const rightDistance = display.workArea.x + display.workArea.width - point.x;
       desktopEffect({ kind: 'eyes', x: point.x, y: point.y, side: leftDistance <= rightDistance ? 'left' : 'right' });
+      setTimeout(() => surprises.end('omen'), 3_400);
     }, 1600);
   }, omenDelayMs());
 };
@@ -273,6 +276,7 @@ app.whenReady().then(() => {
     else if (surprise === 'fracture') desktopEffect({ kind: 'fracture', x: point.x, y: point.y });
     else if (surprise === 'cameo') desktopEffect({ kind: 'cameo', x: point.x, y: point.y });
     else if (surprise === 'pixel-goose') desktopEffect({ kind: 'cursor-goose', x: point.x, y: point.y });
+    else if (surprise === 'steve-dig') desktopEffect({ kind: 'steve-dig', x: point.x, y: point.y });
     else if (surprise === 'omen-title') desktopEffect({ kind: 'omen-title' });
     else {
       const display = screen.getDisplayNearestPoint(point);
@@ -288,6 +292,18 @@ app.whenReady().then(() => {
     BrowserWindow.fromWebContents(event.sender)?.minimize(),
   );
   createWindow();
+  surprises.scheduleNatural(Date.now());
+  naturalTimer = setInterval(() => {
+    if (!surprises.takeNatural(Date.now()) || !surprises.begin('steve-dig')) return;
+    const cursor = screen.getCursorScreenPoint();
+    const display = screen.getDisplayNearestPoint(cursor);
+    desktopEffect({
+      kind: 'steve-dig',
+      x: display.workArea.x + 180 + Math.random() * Math.max(1, display.workArea.width - 360),
+      y: display.workArea.y + 180 + Math.random() * Math.max(1, display.workArea.height - 360),
+    });
+    setTimeout(() => surprises.end('steve-dig'), 5_200);
+  }, 1000);
   mainWindow.once('ready-to-show', () => {
     void ensureDesktopGoosePath(mainWindow as BrowserWindow);
   });
