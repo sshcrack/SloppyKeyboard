@@ -15,7 +15,11 @@ const config: ForgeConfig = {
   packagerConfig: {
     asar: true,
     icon: './assets/icon/sloppy-keyboard.ico',
-    extraResource: ['./native/keyboard-blocker.exe', './assets/shorts'],
+    extraResource: [
+      './native/keyboard-blocker.exe',
+      './assets/shorts',
+      './assets/goose-mod/SloppyKeyboard.dll',
+    ],
   },
   rebuildConfig: {},
   makers: [
@@ -38,6 +42,22 @@ const config: ForgeConfig = {
             html: './src/index.html',
             js: './src/renderer.ts',
             name: 'main_window',
+            preload: {
+              js: './src/preload.ts',
+            },
+          },
+          {
+            html: './src/overlay.html',
+            js: './src/desktop-overlay.ts',
+            name: 'desktop_overlay',
+            preload: {
+              js: './src/preload.ts',
+            },
+          },
+          {
+            html: './src/goose-setup.html',
+            js: './src/goose-setup.ts',
+            name: 'goose_setup',
             preload: {
               js: './src/preload.ts',
             },

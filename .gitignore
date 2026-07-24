@@ -95,3 +95,7 @@ out/
 native/*.exe
 native/*.obj
 assets/shorts/source/
+goose-mod/lib/
+goose-mod/bin/
+goose-mod/obj/
+.dotnet/

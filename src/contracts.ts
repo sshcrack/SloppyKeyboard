@@ -6,6 +6,10 @@ export const IPC_RUN_MINIGAME = 'sloppy-keyboard:run-minigame';
 export const IPC_DEBUG_MODE = 'sloppy-keyboard:debug-mode';
 export const IPC_DEBUG_RUN_MINIGAME = 'sloppy-keyboard:debug-run-minigame';
 export const IPC_PRESS_SPECIAL_KEY = 'sloppy-keyboard:press-special-key';
+export const IPC_GOOSE_STATE = 'sloppy-keyboard:goose-state';
+export const IPC_GOOSE_BALLS = 'sloppy-keyboard:goose-balls';
+export const IPC_ESCAPE_BALL = 'sloppy-keyboard:escape-ball';
+export const IPC_GOOSE_SETUP_PROGRESS = 'sloppy-keyboard:goose-setup-progress';
 
 export const SPECIAL_KEYS = ['backspace', 'enter'] as const;
 export type SpecialKey = typeof SPECIAL_KEYS[number];
@@ -41,6 +45,32 @@ export interface TypeResult {
   error?: string;
 }
 
+export const GOOSE_PROTOCOL_VERSION = 1;
+export interface ScreenRect { x: number; y: number; width: number; height: number }
+export interface BallSnapshot {
+  id: string; x: number; y: number; radius: number;
+  velocityX: number; velocityY: number; space: 'screen'; huntEligible: boolean;
+}
+export interface GooseCircleCollider {
+  id: 'body' | 'head'; kind: 'circle'; x: number; y: number; radius: number;
+  velocityX: number; velocityY: number;
+}
+export interface GooseWindowCollider {
+  id: string; kind: 'window'; bounds: ScreenRect;
+  velocityX: number; velocityY: number;
+}
+export type GooseCollider = GooseCircleCollider | GooseWindowCollider;
+export interface GooseState {
+  protocolVersion: typeof GOOSE_PROTOCOL_VERSION;
+  connected: boolean; receivedAt: number; colliders: GooseCollider[]; error?: string;
+}
+export interface EscapedBall { ball: BallSnapshot; workArea: ScreenRect }
+export interface GooseSetupProgress {
+  phase: 'download' | 'extract' | 'configure' | 'done' | 'error';
+  percent: number;
+  detail: string;
+}
+
 export interface SloppyKeyboardApi {
   typeCharacter: (character: string) => Promise<TypeResult>;
   pressSpecialKey: (key: SpecialKey) => Promise<TypeResult>;
@@ -50,4 +80,9 @@ export interface SloppyKeyboardApi {
   debugRunMinigame: (id: MinigameId) => Promise<MinigameResult>;
   closeWindow: () => void;
   minimizeWindow: () => void;
+  sendGooseBalls: (balls: BallSnapshot[], boardBounds: ScreenRect, mysterySlot: ScreenRect | null) => void;
+  escapeBall: (ball: BallSnapshot) => void;
+  onGooseState: (listener: (state: GooseState) => void) => () => void;
+  onEscapedBall: (listener: (ball: EscapedBall) => void) => () => void;
+  onGooseSetupProgress: (listener: (progress: GooseSetupProgress) => void) => () => void;
 }

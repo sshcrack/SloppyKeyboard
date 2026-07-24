@@ -106,17 +106,59 @@
             aria-label="Click to roll the Backspace die"
           >
             <div class="die">
-              <div class="die__face die__face--1">●</div>
-              <div class="die__face die__face--2">●<br>●</div>
-              <div class="die__face die__face--3">●<br>●<br>●</div>
-              <div class="die__face die__face--4">● ●<br>● ●</div>
-              <div class="die__face die__face--5">● ●<br>●<br>● ●</div>
-              <div class="die__face die__face--6">● ●<br>● ●<br>● ●</div>
+              <div class="die__face die__face--1">
+                <i class="pip pip--mc"></i>
+              </div>
+              <div class="die__face die__face--2">
+                <i class="pip pip--tl"></i><i class="pip pip--br"></i>
+              </div>
+              <div class="die__face die__face--3">
+                <i class="pip pip--tl"></i><i class="pip pip--mc"></i>
+                <i class="pip pip--br"></i>
+              </div>
+              <div class="die__face die__face--4">
+                <i class="pip pip--tl"></i><i class="pip pip--tr"></i>
+                <i class="pip pip--bl"></i><i class="pip pip--br"></i>
+              </div>
+              <div class="die__face die__face--5">
+                <i class="pip pip--tl"></i><i class="pip pip--tr"></i>
+                <i class="pip pip--mc"></i>
+                <i class="pip pip--bl"></i><i class="pip pip--br"></i>
+              </div>
+              <div class="die__face die__face--6">
+                <i class="pip pip--tl"></i><i class="pip pip--tr"></i>
+                <i class="pip pip--ml"></i><i class="pip pip--mr"></i>
+                <i class="pip pip--bl"></i><i class="pip pip--br"></i>
+              </div>
             </div>
           </button>
           <strong class="dice-roll__result"></strong>
           <div class="dice-roll__progress"><i></i></div>
           <small>UNREGISTERED COPIES MAY DELETE BETWEEN 1 AND 6 CHARACTERS.</small>
+        </div>
+      </section>
+
+      <section id="enter-stamp" class="enter-stamp" hidden aria-live="assertive">
+        <div class="enter-stamp__window">
+          <div class="enter-stamp__titlebar">ENTER CONTROL PANEL · DO NOT LEAN</div>
+          <p class="enter-stamp__status">LIFT SAFETY COVER</p>
+          <div class="enter-stamp__machine">
+            <button class="enter-stamp__plunger" type="button" disabled>
+              <span>ENTER</span>
+            </button>
+            <button
+              class="enter-stamp__cover"
+              type="button"
+              aria-label="Lift the Enter safety cover"
+            >
+              <span>SAFETY COVER</span>
+              <small>CLICK TO LIFT</small>
+            </button>
+            <div class="enter-stamp__base">AUTHORIZED PERSONNEL ONLY</div>
+          </div>
+          <strong class="enter-stamp__result">
+            ENTER KEY REQUIRES MANUAL AUTHORIZATION
+          </strong>
         </div>
       </section>
 

@@ -12,6 +12,9 @@ import {
   PIN_RADIUS,
   createPinLayout,
 } from './pin-layout';
+import type { BallSnapshot, GooseState, ScreenRect } from './contracts';
+import { screenToCanvas } from './coordinates';
+import { shouldEscape, shouldHunt } from './goose-rules';
 
 export const BOARD_WIDTH = 880;
 export const BOARD_HEIGHT = 560;
@@ -26,11 +29,14 @@ const SENSOR_CATEGORY = 0x0004;
 export interface BallRecord {
   body: Body;
   bornAt: number;
+  appId: string;
+  huntEligible: boolean;
 }
 
 export interface BoardPhysicsHooks {
   onLanding: (ballId: number, slot: number) => void;
   onAbandon: (ballId: number) => void;
+  onEscape: (ballId: number, snapshot: BallSnapshot) => void;
 }
 
 export class BoardPhysics {
@@ -38,6 +44,9 @@ export class BoardPhysics {
   readonly balls = new Map<number, BallRecord>();
   private lastTime = performance.now();
   private animationFrame = 0;
+  private nextBallId = 1;
+  private gooseConnected = false;
+  private externalBodies = new Map<string, Body>();
 
   constructor(private readonly hooks: BoardPhysicsHooks) {
     this.createMachine();
@@ -55,6 +64,13 @@ export class BoardPhysics {
             : null;
         if (sensor && ball && this.balls.has(ball.id)) {
           const slot = Number(sensor.label.split(':')[1]);
+          if (this.gooseConnected && shouldEscape()) {
+            const record = this.balls.get(ball.id) as BallRecord;
+            const snapshot = this.snapshot(record, { x: 0, y: 0, width: BOARD_WIDTH, height: BOARD_HEIGHT });
+            this.removeBall(ball.id);
+            this.hooks.onEscape(ball.id, snapshot);
+            continue;
+          }
           this.removeBall(ball.id);
           this.hooks.onLanding(ball.id, slot);
         }
@@ -77,7 +93,7 @@ export class BoardPhysics {
     cancelAnimationFrame(this.animationFrame);
   }
 
-  launch(x: number): boolean {
+  launch(x: number): string | false {
     if (this.balls.size >= BALL_LIMIT) return false;
     const clampedX = Math.max(22, Math.min(BOARD_WIDTH - 22, x));
     const ball = Bodies.circle(clampedX, 31, BALL_RADIUS, {
@@ -95,12 +111,79 @@ export class BoardPhysics {
       x: (Math.random() - 0.5) * 0.45,
       y: 0.5,
     });
+    const appId = `ball-${Date.now().toString(36)}-${this.nextBallId++}`;
     this.balls.set(ball.id, {
       body: ball,
       bornAt: performance.now(),
+      appId,
+      huntEligible: shouldHunt(),
     });
     World.add(this.engine.world, ball);
-    return true;
+    return appId;
+  }
+
+  snapshots(canvasBounds: ScreenRect): BallSnapshot[] {
+    return [...this.balls.values()].map((record) => this.snapshot(record, canvasBounds));
+  }
+
+  syncGoose(state: GooseState, canvasBounds: ScreenRect): void {
+    this.gooseConnected = state.connected;
+    const live = new Set<string>();
+    for (const collider of state.colliders) {
+      live.add(collider.id);
+      let body = this.externalBodies.get(collider.id);
+      if (collider.kind === 'circle') {
+        const point = screenToCanvas(collider, canvasBounds, BOARD_WIDTH, BOARD_HEIGHT);
+        if (!body || !body.circleRadius) {
+          if (body) Composite.remove(this.engine.world, body);
+          body = Bodies.circle(point.x, point.y, collider.radius * BOARD_WIDTH / canvasBounds.width, {
+            isStatic: true, label: `goose:${collider.id}`, restitution: 0.82,
+          });
+          this.externalBodies.set(collider.id, body);
+          World.add(this.engine.world, body);
+        }
+        Body.setPosition(body, point);
+        Body.setVelocity(body, {
+          x: Math.max(-18, Math.min(18, collider.velocityX)),
+          y: Math.max(-18, Math.min(18, collider.velocityY)),
+        });
+      } else {
+        const topLeft = screenToCanvas(collider.bounds, canvasBounds, BOARD_WIDTH, BOARD_HEIGHT);
+        const width = collider.bounds.width * BOARD_WIDTH / canvasBounds.width;
+        const height = collider.bounds.height * BOARD_HEIGHT / canvasBounds.height;
+        if (!body || body.circleRadius || Math.abs(body.bounds.max.x - body.bounds.min.x - width) > 1) {
+          if (body) Composite.remove(this.engine.world, body);
+          body = Bodies.rectangle(topLeft.x + width / 2, topLeft.y + height / 2, width, height, {
+            isStatic: true, label: `goose-window:${collider.id}`, restitution: 0.72,
+          });
+          this.externalBodies.set(collider.id, body);
+          World.add(this.engine.world, body);
+        }
+        Body.setPosition(body, { x: topLeft.x + width / 2, y: topLeft.y + height / 2 });
+        Body.setVelocity(body, { x: collider.velocityX, y: collider.velocityY });
+      }
+    }
+    for (const [id, body] of this.externalBodies) {
+      if (!live.has(id)) {
+        Composite.remove(this.engine.world, body);
+        this.externalBodies.delete(id);
+      }
+    }
+  }
+
+  private snapshot(record: BallRecord, canvasBounds: ScreenRect): BallSnapshot {
+    const xScale = canvasBounds.width / BOARD_WIDTH;
+    const yScale = canvasBounds.height / BOARD_HEIGHT;
+    return {
+      id: record.appId,
+      x: canvasBounds.x + record.body.position.x * xScale,
+      y: canvasBounds.y + record.body.position.y * yScale,
+      radius: BALL_RADIUS * xScale,
+      velocityX: record.body.velocity.x * xScale,
+      velocityY: record.body.velocity.y * yScale,
+      space: 'screen',
+      huntEligible: record.huntEligible,
+    };
   }
 
   private removeBall(id: number): void {

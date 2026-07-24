@@ -1,4 +1,4 @@
-import { execFile, spawn } from 'child_process';
+import { execFile, execFileSync, spawn } from 'child_process';
 import {
   existsSync,
   readFileSync,
@@ -9,15 +9,15 @@ import { basename, dirname, join } from 'path';
 import {
   app,
   BrowserWindow,
-  dialog,
   screen,
   session,
-  shell,
 } from 'electron';
-import type {
-  MinigameDescriptor,
-  MinigameId,
-  MinigameResult,
+import {
+  IPC_GOOSE_SETUP_PROGRESS,
+  type GooseSetupProgress,
+  type MinigameDescriptor,
+  type MinigameId,
+  type MinigameResult,
 } from './contracts';
 import {
   MINIGAMES,
@@ -26,6 +26,11 @@ import {
 } from './minigame-data';
 import { openFakeBluescreen } from './fake-bluescreen';
 import { secureRemoteWindow } from './remote-window';
+import { installGooseMod } from './goose-installer';
+import { downloadDesktopGoose } from './goose-download';
+
+declare const GOOSE_SETUP_WEBPACK_ENTRY: string;
+declare const GOOSE_SETUP_PRELOAD_WEBPACK_ENTRY: string;
 
 export interface MinigameContext {
   mainWindow: BrowserWindow;
@@ -276,6 +281,32 @@ const runShorts = ({ mainWindow }: MinigameContext): Promise<MinigameResult> =>
 const gooseConfigPath = (): string =>
   join(app.getPath('userData'), 'desktop-goose.json');
 
+const gooseModDll = (): string => app.isPackaged
+  ? join(process.resourcesPath, 'SloppyKeyboard.dll')
+  : join(app.getAppPath(), 'assets', 'goose-mod', 'SloppyKeyboard.dll');
+
+const gooseIsRunning = (): boolean => {
+  try {
+    return execFileSync('tasklist.exe', ['/FI', 'IMAGENAME eq GooseDesktop.exe'], {
+      encoding: 'utf8',
+      windowsHide: true,
+    }).toLowerCase().includes('goosedesktop.exe');
+  } catch {
+    return false;
+  }
+};
+
+const configureGoose = (executablePath: string): string | null => {
+  try {
+    const result = installGooseMod(executablePath, gooseModDll(), gooseIsRunning());
+    return result.restartRequired
+      ? 'GOOSE MOD UPDATED · RESTART DESKTOP GOOSE'
+      : null;
+  } catch (error) {
+    return error instanceof Error ? error.message : String(error);
+  }
+};
+
 const readGoosePath = (): string | null => {
   try {
     const value = JSON.parse(readFileSync(gooseConfigPath(), 'utf8'));
@@ -285,43 +316,68 @@ const readGoosePath = (): string | null => {
   }
 };
 
-const chooseGoosePath = async (
-  mainWindow: BrowserWindow,
-): Promise<string | null> => {
-  for (;;) {
-    const choice = await dialog.showMessageBox(mainWindow, {
-      type: 'question',
-      title: 'Desktop Goose setup',
-      message: 'Desktop Goose is not bundled because its license forbids redistribution.',
-      detail: 'Download it from the official page, select GooseDesktop.exe, or cancel.',
-      buttons: ['Open official download', 'Select GooseDesktop.exe', 'Cancel'],
-      defaultId: 0,
-      cancelId: 2,
+const automaticGooseSetup = (mainWindow: BrowserWindow): Promise<void> =>
+  new Promise((resolve) => {
+    const setup = track(new BrowserWindow({
+      width: 560,
+      height: 300,
+      parent: mainWindow,
+      modal: true,
+      frame: false,
+      resizable: false,
+      minimizable: false,
+      maximizable: false,
+      alwaysOnTop: true,
+      show: false,
+      backgroundColor: '#c0c0c0',
+      webPreferences: {
+        preload: GOOSE_SETUP_PRELOAD_WEBPACK_ENTRY,
+        contextIsolation: true,
+        nodeIntegration: false,
+      },
+    }));
+    const publish = (state: GooseSetupProgress): void =>
+      setup.webContents.send(IPC_GOOSE_SETUP_PROGRESS, state);
+    setup.once('ready-to-show', () => setup.show());
+    setup.webContents.once('did-finish-load', () => {
+      void downloadDesktopGoose(app.getPath('userData'), publish)
+        .then((executablePath) => {
+          writeFileSync(gooseConfigPath(), JSON.stringify({ executablePath }), 'utf8');
+          const error = configureGoose(executablePath);
+          if (error) throw new Error(error);
+          publish({ phase: 'done', percent: 100, detail: 'DESKTOP GOOSE IS READY.' });
+          setTimeout(() => {
+            if (!setup.isDestroyed()) setup.close();
+            resolve();
+          }, 650);
+        })
+        .catch((error: unknown) => {
+          publish({
+            phase: 'error',
+            percent: 100,
+            detail: error instanceof Error ? error.message.toUpperCase() : 'SETUP FAILED',
+          });
+          setTimeout(() => {
+            if (!setup.isDestroyed()) setup.close();
+            resolve();
+          }, 5000);
+        });
     });
-    if (choice.response === 0) {
-      await shell.openExternal('https://samperson.itch.io/desktop-goose?download');
-      continue;
-    }
-    if (choice.response !== 1) return null;
-    const selected = await dialog.showOpenDialog(mainWindow, {
-      title: 'Select GooseDesktop.exe',
-      properties: ['openFile'],
-      filters: [{ name: 'Windows executable', extensions: ['exe'] }],
-    });
-    const executablePath = selected.filePaths[0];
-    if (selected.canceled || !executablePath) continue;
-    writeFileSync(gooseConfigPath(), JSON.stringify({ executablePath }), 'utf8');
-    return executablePath;
-  }
-};
+    void setup.loadURL(GOOSE_SETUP_WEBPACK_ENTRY);
+  });
 
-/** Prompts during app startup so the minigame can launch without setup UI. */
+/** Downloads and configures Desktop Goose during startup without prompting. */
 export const ensureDesktopGoosePath = async (
   mainWindow: BrowserWindow,
 ): Promise<void> => {
   const executablePath = readGoosePath();
   if (!executablePath || !existsSync(executablePath)) {
-    await chooseGoosePath(mainWindow);
+    await automaticGooseSetup(mainWindow);
+  } else {
+    const error = configureGoose(executablePath);
+    if (error) {
+      await automaticGooseSetup(mainWindow);
+    }
   }
 };
 
@@ -329,6 +385,13 @@ const runGoose = async (): Promise<MinigameResult> => {
   const executablePath = readGoosePath();
   if (!executablePath || !existsSync(executablePath)) {
     return { status: 'cancelled', message: 'DESKTOP GOOSE SETUP INCOMPLETE' };
+  }
+  const installMessage = configureGoose(executablePath);
+  if (installMessage) {
+    return {
+      status: 'failed',
+      message: installMessage,
+    };
   }
   try {
     spawn(executablePath, [], {
@@ -389,4 +452,22 @@ export const closeMinigameWindows = (): void => {
     if (!window.isDestroyed()) window.destroy();
   }
   childWindows.clear();
+};
+
+export const closeDesktopGoose = (): void => {
+  const executablePath = readGoosePath();
+  if (!executablePath) return;
+  const closeScript = join(dirname(executablePath), 'Close Goose.bat');
+  if (!existsSync(closeScript)) return;
+  try {
+    spawn('cmd.exe', ['/d', '/s', '/c', `"${closeScript}"`], {
+      cwd: dirname(executablePath),
+      detached: true,
+      shell: false,
+      stdio: 'ignore',
+      windowsHide: true,
+    }).unref();
+  } catch {
+    // Application shutdown must continue if the optional Goose script fails.
+  }
 };

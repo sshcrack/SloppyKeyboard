@@ -41,6 +41,21 @@
   to { opacity: 0; transform: translate(var(--spark-x), var(--spark-y)); }
 }
 
+@keyframes cover-lift {
+  to { transform: translateY(-108px) rotateX(62deg); }
+}
+
+@keyframes enter-slam {
+  45% { transform: translateY(18px); }
+  65% { transform: translateY(18px) scaleY(.78); }
+  100% { transform: translateY(0); }
+}
+
+@keyframes stamp-shake {
+  20%, 60% { transform: translate(5px, 2px); }
+  40%, 80% { transform: translate(-5px, -1px); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

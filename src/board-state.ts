@@ -66,6 +66,10 @@ export class BoardState {
     return this.activeBalls === 0;
   }
 
+  escape(): boolean {
+    return this.abandon();
+  }
+
   reroll(): void {
     if (this.activeBalls > 0) {
       throw new Error('Cannot skip during an active volley.');

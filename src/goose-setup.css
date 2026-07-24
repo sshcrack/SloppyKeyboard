@@ -1,0 +1,14 @@
+:root{font-family:"MS Sans Serif",Tahoma,sans-serif;color:#000;background:#008080}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden}body{padding:4px;background:#c0c0c0}
+.window{height:100%;border:2px solid;border-color:#fff #000 #000 #fff;display:grid;grid-template-rows:28px 1fr 30px}
+header{display:flex;align-items:center;gap:7px;padding:2px 3px;background:#000080;color:#fff;font-size:13px;letter-spacing:.02em}
+header .icon{font-size:16px}header strong{flex:1}button{width:22px;height:20px;padding:0;border:2px solid;border-color:#fff #404040 #404040 #fff;background:#c0c0c0;color:#808080;font:bold 17px serif;line-height:13px}
+section{padding:20px 22px 13px;display:grid;grid-template-columns:86px 1fr;grid-template-rows:auto auto auto;column-gap:14px;background:repeating-linear-gradient(0deg,#c0c0c0 0 3px,#c4c4c4 3px 4px)}
+.goose{grid-row:1/4;align-self:center;font-size:55px;filter:grayscale(.15);text-shadow:2px 2px #fff}.goose span{display:block;margin:-13px 0 0 37px;color:#000080;font:bold 15px "Courier New",monospace;animation:dots .8s steps(2) infinite}
+h1{margin:0 0 8px;font-size:18px}p{height:28px;margin:0;font:bold 11px "Courier New",monospace;color:#202020}
+.well{grid-column:2;margin-top:10px;padding:3px;border:2px solid;border-color:#404040 #fff #fff #404040;background:#fff}
+#progress{--progress:0%;height:23px;background:repeating-linear-gradient(90deg,transparent 0 13px,#fff 13px 15px),linear-gradient(90deg,#000080 0 var(--progress),transparent var(--progress));transition:background-size .12s}
+.scale{grid-column:2;display:flex;justify-content:space-between;margin-top:4px;font:10px "Courier New",monospace}.scale b{color:#000080}
+footer{display:flex;align-items:center;gap:7px;padding:4px 8px;border-top:2px solid #808080;font:bold 10px "Courier New",monospace}.led{width:10px;height:10px;border:1px solid #000;background:#ff0;box-shadow:inset 1px 1px #fff}footer small{margin-left:auto;font-size:9px}
+.done .led{background:#00a000}.error .led{background:#f00}.error #progress{filter:hue-rotate(120deg)}
+@keyframes dots{50%{transform:translateX(5px)}}

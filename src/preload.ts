@@ -8,6 +8,10 @@ import {
   IPC_PRESS_SPECIAL_KEY,
   IPC_RUN_MINIGAME,
   IPC_TYPE_CHARACTER,
+  IPC_GOOSE_STATE,
+  IPC_GOOSE_BALLS,
+  IPC_ESCAPE_BALL,
+  IPC_GOOSE_SETUP_PROGRESS,
   SloppyKeyboardApi,
 } from './contracts';
 
@@ -21,6 +25,24 @@ const api: SloppyKeyboardApi = {
   debugRunMinigame: (id) => ipcRenderer.invoke(IPC_DEBUG_RUN_MINIGAME, id),
   closeWindow: () => ipcRenderer.send(IPC_CLOSE_WINDOW),
   minimizeWindow: () => ipcRenderer.send(IPC_MINIMIZE_WINDOW),
+  sendGooseBalls: (balls, boardBounds, mysterySlot) =>
+    ipcRenderer.send(IPC_GOOSE_BALLS, { balls, boardBounds, mysterySlot }),
+  escapeBall: (ball) => ipcRenderer.send(IPC_ESCAPE_BALL, ball),
+  onGooseState: (listener) => {
+    const handler = (_event: Electron.IpcRendererEvent, state: Parameters<typeof listener>[0]): void => listener(state);
+    ipcRenderer.on(IPC_GOOSE_STATE, handler);
+    return () => ipcRenderer.removeListener(IPC_GOOSE_STATE, handler);
+  },
+  onEscapedBall: (listener) => {
+    const handler = (_event: Electron.IpcRendererEvent, ball: Parameters<typeof listener>[0]): void => listener(ball);
+    ipcRenderer.on(IPC_ESCAPE_BALL, handler);
+    return () => ipcRenderer.removeListener(IPC_ESCAPE_BALL, handler);
+  },
+  onGooseSetupProgress: (listener) => {
+    const handler = (_event: Electron.IpcRendererEvent, progress: Parameters<typeof listener>[0]): void => listener(progress);
+    ipcRenderer.on(IPC_GOOSE_SETUP_PROGRESS, handler);
+    return () => ipcRenderer.removeListener(IPC_GOOSE_SETUP_PROGRESS, handler);
+  },
 };
 
 contextBridge.exposeInMainWorld('sloppyKeyboard', api);

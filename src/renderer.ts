@@ -5,10 +5,10 @@ import { BoardPhysics } from './board-physics';
 import { BoardRenderer, LANDING_FLASH_MS } from './board-renderer';
 import { BoardState } from './board-state';
 import { MinigameReel } from './minigame-reel';
-import type { MinigameId, SpecialKey } from './contracts';
+import type { GooseState, MinigameId, ScreenRect } from './contracts';
 import { MINIGAMES } from './minigame-data';
-import { SkillCheck } from './skill-check';
 import { DiceRoll } from './dice-roll';
+import { EnterStamp } from './enter-stamp';
 import {
   HIGH_SCORE_STORAGE_KEY,
   pressBackspaceRepeatedly,
@@ -33,8 +33,8 @@ const highScoreBox = required<HTMLElement>('#high-score-box');
 const status = required<HTMLElement>('#status');
 const typedValue = required<HTMLElement>('#typed-value');
 const selector = new MinigameReel(required<HTMLElement>('#selector'));
-const skillCheck = new SkillCheck(required<HTMLElement>('#skill-check'));
 const diceRoll = new DiceRoll(required<HTMLElement>('#dice-roll'));
+const enterStamp = new EnterStamp(required<HTMLElement>('#enter-stamp'));
 const boardShell = required<HTMLElement>('.board-shell');
 const hitEffects = document.createElement('div');
 hitEffects.className = 'hit-effects';
@@ -51,9 +51,9 @@ let phase:
   | 'ready'
   | 'highlight'
   | 'selector'
-  | 'skill-check'
   | 'debug'
-  | 'dice-roll' = 'ready';
+  | 'dice-roll'
+  | 'enter-stamp' = 'ready';
 let scoreState = {
   score: 0,
   highScore: (() => {
@@ -112,9 +112,9 @@ const updateControls = (): void => {
   });
   if (phase === 'highlight') status.textContent = 'REGISTERING HIT...';
   else if (phase === 'selector') status.textContent = 'MYSTERY EVENT ACTIVE';
-  else if (phase === 'skill-check') status.textContent = 'SPECIAL KEY CHECK ACTIVE';
   else if (phase === 'debug') status.textContent = 'DEBUG MINIGAME ACTIVE';
   else if (phase === 'dice-roll') status.textContent = 'BACKSPACE DICE ACTIVE';
+  else if (phase === 'enter-stamp') status.textContent = 'ENTER AUTHORIZATION ACTIVE';
   else if (board.specialPending) {
     status.textContent = `MYSTERY ARMED · ${board.activeBalls} BALLS REMAIN`;
   }
@@ -174,52 +174,6 @@ const finishAfterHighlight = (): void => {
   }, LANDING_FLASH_MS);
 };
 
-const launchSkillCheckPenalty = async (): Promise<void> => {
-  phase = 'selector';
-  updateControls();
-  try {
-    const draw = await window.sloppyKeyboard.drawMinigame();
-    const winner = await selector.spin(draw);
-    const result = await window.sloppyKeyboard.runMinigame(winner.id);
-    selector.hide();
-    phase = 'ready';
-    updateControls();
-    showStatus(
-      result.message ?? 'SKILL CHECK PENALTY COMPLETE',
-      result.status === 'failed',
-    );
-  } catch {
-    selector.hide();
-    phase = 'ready';
-    updateControls();
-    showStatus('SKILL CHECK PENALTY FAILED SAFELY', true);
-  }
-};
-
-const runSpecialKey = async (key: SpecialKey): Promise<void> => {
-  if (phase !== 'ready' || board.activeBalls > 0) {
-    showStatus('WAIT FOR THE CURRENT VOLLEY');
-    return;
-  }
-  phase = 'skill-check';
-  updateControls();
-  const success = await skillCheck.run(key);
-  phase = 'ready';
-  updateControls();
-  if (!success) {
-    showStatus(`${key.toUpperCase()} BLOCKED · 3 STRIKES`, true);
-    await launchSkillCheckPenalty();
-    return;
-  }
-  const result = await window.sloppyKeyboard.pressSpecialKey(key);
-  showStatus(
-    result.ok
-      ? `${key.toUpperCase()} TRANSMITTED`
-      : `${key.toUpperCase()} INPUT BLOCKED`,
-    !result.ok,
-  );
-};
-
 const runBackspaceDice = async (): Promise<void> => {
   if (phase !== 'ready' || board.activeBalls > 0) {
     showStatus('WAIT FOR THE CURRENT VOLLEY');
@@ -245,6 +199,31 @@ const runBackspaceDice = async (): Promise<void> => {
     message = 'BACKSPACE DICE FAILED SAFELY';
   } finally {
     diceRoll.hide();
+    phase = 'ready';
+    updateControls();
+    showStatus(message, isError);
+  }
+};
+
+const runEnterStamp = async (): Promise<void> => {
+  if (phase !== 'ready' || board.activeBalls > 0) {
+    showStatus('WAIT FOR THE CURRENT VOLLEY');
+    return;
+  }
+  phase = 'enter-stamp';
+  updateControls();
+  let message = 'ENTER STAMP FAILED SAFELY';
+  let isError = true;
+  try {
+    await enterStamp.authorize();
+    enterStamp.setDispatching();
+    const result = await window.sloppyKeyboard.pressSpecialKey('enter');
+    message = result.ok ? 'ENTER STAMPED AND TRANSMITTED' : 'ENTER INPUT BLOCKED';
+    isError = !result.ok;
+  } catch {
+    message = 'ENTER STAMP FAILED SAFELY';
+  } finally {
+    enterStamp.hide();
     phase = 'ready';
     updateControls();
     showStatus(message, isError);
@@ -326,10 +305,48 @@ const physics = new BoardPhysics({
     if (board.abandon()) void completeVolley();
     else updateControls();
   },
+  onEscape: (_ballId, snapshot) => {
+    const bounds = canvas.getBoundingClientRect();
+    window.sloppyKeyboard.escapeBall({
+      ...snapshot,
+      x: window.screenX + bounds.left + snapshot.x * bounds.width / 880,
+      y: window.screenY + bounds.top + snapshot.y * bounds.height / 560,
+      radius: snapshot.radius * bounds.width / 880,
+      velocityX: snapshot.velocityX * bounds.width / 880,
+      velocityY: snapshot.velocityY * bounds.height / 560,
+    });
+    showStatus('BALL ESCAPED TO THE DESKTOP');
+    if (board.escape()) void completeVolley();
+    else updateControls();
+  },
 });
 
 const renderer = new BoardRenderer(canvas, physics, () => board.slots);
 rendererRef.current = renderer;
+
+const canvasScreenBounds = (): ScreenRect => {
+  const bounds = canvas.getBoundingClientRect();
+  return {
+    x: window.screenX + bounds.left,
+    y: window.screenY + bounds.top,
+    width: bounds.width,
+    height: bounds.height,
+  };
+};
+const syncGooseState = (state: GooseState): void =>
+  physics.syncGoose(state, canvasScreenBounds());
+const stopGooseSubscription = window.sloppyKeyboard.onGooseState(syncGooseState);
+const publishBalls = window.setInterval(() => {
+  const bounds = canvasScreenBounds();
+  const special = board.slots.findIndex((slot) => slot.kind === 'special');
+  const slotWidth = bounds.width / 10;
+  window.sloppyKeyboard.sendGooseBalls(physics.snapshots(bounds), bounds, {
+    x: bounds.x + special * slotWidth,
+    y: bounds.y + 490 * bounds.height / 560,
+    width: slotWidth,
+    height: 70 * bounds.height / 560,
+  });
+}, 1000 / 30);
 
 canvas.addEventListener('pointerdown', (event) => {
   if (!renderer.isLaunchRail(event.clientY)) return;
@@ -348,14 +365,15 @@ minimizeButton.addEventListener('click', () =>
   window.sloppyKeyboard.minimizeWindow());
 specialKeyButtons.forEach((button) => {
   button.addEventListener('click', () => {
-    const key = button.dataset.specialKey as SpecialKey;
+    const key = button.dataset.specialKey;
     if (key === 'backspace') void runBackspaceDice();
-    else void runSpecialKey(key);
+    else void runEnterStamp();
   });
 });
 window.addEventListener('beforeunload', () => {
   physics.stop();
-  skillCheck.stop();
+  stopGooseSubscription();
+  window.clearInterval(publishBalls);
   if (completionTimer !== undefined) window.clearTimeout(completionTimer);
   if (recordTimer !== undefined) window.clearTimeout(recordTimer);
 });

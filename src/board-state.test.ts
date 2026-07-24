@@ -53,4 +53,16 @@ describe('BoardState', () => {
     expect(board.abandon()).toBe(false);
     expect(board.abandon()).toBe(true);
   });
+
+  it('finishes mixed and all-escaped volleys on the final escape', () => {
+    const mixed = new BoardState(() => 0.5);
+    mixed.launch();
+    mixed.launch();
+    expect(mixed.land(1).volleyFinished).toBe(false);
+    expect(mixed.escape()).toBe(true);
+    const escaped = new BoardState(() => 0.5);
+    escaped.launch();
+    expect(escaped.escape()).toBe(true);
+    expect(escaped.specialPending).toBe(false);
+  });
 });
