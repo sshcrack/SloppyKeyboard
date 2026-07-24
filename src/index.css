@@ -173,15 +173,25 @@ h1 {
   border-bottom-color: #fff;
 }
 
-.batch {
+.arcade-counters {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
   margin-left: 4px;
 }
 
-.batch strong {
-  min-width: 31px;
+.counter {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 9px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.counter strong {
+  width: 57px;
   padding: 3px 5px;
   border-top: 2px solid var(--win-mid);
   border-left: 2px solid var(--win-mid);
@@ -190,6 +200,33 @@ h1 {
   background: #fff;
   font-family: "Courier New", monospace;
   text-align: right;
+}
+
+.counter:last-child strong {
+  width: 31px;
+}
+
+#new-high-score {
+  position: absolute;
+  top: 28px;
+  right: 0;
+  z-index: 4;
+  display: none;
+  width: 104px;
+  padding: 3px;
+  color: #fff;
+  border: 1px solid #fff;
+  background: #800000;
+  text-align: center;
+}
+
+#high-score-box.new-record #new-high-score {
+  display: block;
+  animation: record-flash 420ms steps(2, end) 5;
+}
+
+.counter strong.punch {
+  animation: score-punch 300ms steps(3, end);
 }
 
 .board-shell {
@@ -250,6 +287,178 @@ canvas {
 
 .skill-check[hidden] {
   display: none;
+}
+
+.dice-roll {
+  position: fixed;
+  inset: 0;
+  z-index: 14;
+  display: grid;
+  place-items: center;
+  background:
+    repeating-linear-gradient(135deg, rgb(0 0 0 / 35%) 0 2px, transparent 2px 5px),
+    rgb(0 0 0 / 72%);
+}
+
+.dice-roll[hidden] {
+  display: none;
+}
+
+.dice-roll__window {
+  width: 420px;
+  padding: 3px 3px 18px;
+  border: 3px solid;
+  border-color: #fff #000 #000 #fff;
+  background: var(--win-gray);
+  box-shadow: 12px 12px 0 rgb(0 0 0 / 55%);
+  text-align: center;
+}
+
+.dice-roll__titlebar {
+  padding: 6px;
+  color: #fff;
+  background: var(--win-blue);
+  font-weight: 700;
+  text-align: left;
+}
+
+.dice-roll__status {
+  margin: 14px 0 6px;
+  font-family: "Courier New", monospace;
+  font-weight: 700;
+}
+
+.die-stage {
+  display: block;
+  width: 150px;
+  height: 150px;
+  padding: 0;
+  margin: 12px auto 8px;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  perspective: 520px;
+}
+
+.dice-roll--waiting .die-stage {
+  cursor: pointer;
+}
+
+.dice-roll--waiting .die-stage:focus-visible {
+  outline: 2px dotted #000;
+  outline-offset: 3px;
+}
+
+.dice-roll--waiting .die {
+  animation: die-ready 600ms steps(2, end) infinite;
+}
+
+.dice-roll--waiting .die-stage:hover .die {
+  filter: brightness(1.18);
+}
+
+.die {
+  position: relative;
+  width: 100px;
+  height: 100px;
+  margin: 25px;
+  transform-style: preserve-3d;
+  transition: transform 120ms steps(2, end);
+}
+
+.die--rolling {
+  animation: die-tumble 1400ms steps(14, end);
+}
+
+.die--settled {
+  transition-duration: 180ms;
+}
+
+.die__face {
+  position: absolute;
+  width: 100px;
+  height: 100px;
+  display: grid;
+  place-content: center;
+  overflow: hidden;
+  color: #000080;
+  border: 5px solid;
+  border-color: #fff #404040 #404040 #fff;
+  background: #f0f0f0;
+  box-shadow: inset 3px 3px #c0c0c0;
+  font: 700 25px/22px "Courier New", monospace;
+  letter-spacing: 12px;
+  text-align: center;
+}
+
+.die__face--1 { transform: translateZ(50px); }
+.die__face--2 { transform: rotateY(90deg) translateZ(50px); }
+.die__face--3 { transform: rotateX(90deg) translateZ(50px); }
+.die__face--4 { transform: rotateX(-90deg) translateZ(50px); }
+.die__face--5 { transform: rotateY(-90deg) translateZ(50px); }
+.die__face--6 { transform: rotateY(180deg) translateZ(50px); }
+
+.dice-roll__result {
+  display: block;
+  min-height: 24px;
+  color: #800000;
+  font: 700 20px "Courier New", monospace;
+}
+
+.dice-roll__progress {
+  height: 18px;
+  margin: 8px 18px;
+  padding: 2px;
+  border: 2px solid;
+  border-color: #808080 #fff #fff #808080;
+  background: #fff;
+}
+
+.dice-roll__progress i {
+  display: block;
+  width: 0;
+  height: 100%;
+  background: repeating-linear-gradient(90deg, #000080 0 10px, transparent 10px 12px);
+}
+
+.dice-roll--rolling .dice-roll__progress i {
+  animation: dice-progress 1400ms steps(12, end) both;
+}
+
+.dice-roll__window small {
+  display: block;
+  padding: 0 18px;
+  color: #404040;
+  line-height: 1.4;
+}
+
+.hit-effects {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.point-popup {
+  position: absolute;
+  bottom: 43px;
+  width: 88px;
+  color: #ffff00;
+  text-shadow: 2px 2px #000;
+  font: 700 19px "Courier New", monospace;
+  text-align: center;
+  animation: point-rise 680ms steps(6, end) both;
+}
+
+.pixel-spark {
+  position: absolute;
+  bottom: 56px;
+  width: 6px;
+  height: 6px;
+  background: var(--spark);
+  box-shadow: 1px 1px #000;
+  animation: spark-burst 520ms steps(5, end) both;
 }
 
 .skill-check__panel {

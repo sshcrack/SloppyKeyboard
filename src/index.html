@@ -44,8 +44,13 @@
             <span>↵</span> Enter
           </button>
         </div>
-        <div class="batch">
-          Balls: <strong id="ball-count">00</strong>
+        <div class="arcade-counters">
+          <div class="counter">SCORE <strong id="score">000000</strong></div>
+          <div id="high-score-box" class="counter">
+            HIGH SCORE <strong id="high-score">000000</strong>
+            <span id="new-high-score">NEW HIGH SCORE</span>
+          </div>
+          <div class="counter">BALLS <strong id="ball-count">00</strong></div>
         </div>
       </section>
 
@@ -88,6 +93,30 @@
             <div class="skill-check__needle"></div>
           </div>
           <strong id="skill-check-result">LEFT-CLICK TO ACTIVATE</strong>
+        </div>
+      </section>
+
+      <section id="dice-roll" class="dice-roll" hidden aria-live="assertive">
+        <div class="dice-roll__window">
+          <div class="dice-roll__titlebar">BACKSPACE.EXE · REGISTERED SHAREWARE</div>
+          <p class="dice-roll__status">PREPARING THROW...</p>
+          <button
+            class="die-stage"
+            type="button"
+            aria-label="Click to roll the Backspace die"
+          >
+            <div class="die">
+              <div class="die__face die__face--1">●</div>
+              <div class="die__face die__face--2">●<br>●</div>
+              <div class="die__face die__face--3">●<br>●<br>●</div>
+              <div class="die__face die__face--4">● ●<br>● ●</div>
+              <div class="die__face die__face--5">● ●<br>●<br>● ●</div>
+              <div class="die__face die__face--6">● ●<br>● ●<br>● ●</div>
+            </div>
+          </button>
+          <strong class="dice-roll__result"></strong>
+          <div class="dice-roll__progress"><i></i></div>
+          <small>UNREGISTERED COPIES MAY DELETE BETWEEN 1 AND 6 CHARACTERS.</small>
         </div>
       </section>
 

@@ -5,10 +5,51 @@
   }
 }
 
+@keyframes die-tumble {
+  0% { transform: rotateX(0deg) rotateY(0deg) rotateZ(0deg); }
+  100% { transform: rotateX(1260deg) rotateY(1620deg) rotateZ(720deg); }
+}
+
+@keyframes die-ready {
+  50% { transform: translateY(-5px) rotateZ(2deg); }
+}
+
+@keyframes dice-progress {
+  from { width: 4%; }
+  to { width: 100%; }
+}
+
+@keyframes score-punch {
+  50% {
+    color: #fff;
+    background: #000080;
+    transform: translate(-2px, -2px) scale(1.12);
+  }
+}
+
+@keyframes record-flash {
+  50% { color: #000; background: #ffff00; }
+}
+
+@keyframes point-rise {
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(-65px); }
+}
+
+@keyframes spark-burst {
+  from { opacity: 1; transform: translate(0, 0); }
+  to { opacity: 0; transform: translate(var(--spark-x), var(--spark-y)); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
     animation-duration: 1ms !important;
+  }
+
+  .point-popup,
+  .pixel-spark {
+    animation-duration: 120ms !important;
   }
 }
