@@ -28,10 +28,7 @@ jobs:
           cache: npm
 
       - name: Install dependencies
-        run: npm ci --ignore-scripts
-
-      - name: Build native keyboard helper
-        run: npm run build:native
+        run: npm ci
 
       - name: Test release revision
         run: |
