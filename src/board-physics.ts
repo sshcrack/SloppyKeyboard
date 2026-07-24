@@ -47,6 +47,7 @@ export class BoardPhysics {
   private nextBallId = 1;
   private gooseConnected = false;
   private externalBodies = new Map<string, Body>();
+  private carriedBalls = new Set<string>();
 
   constructor(private readonly hooks: BoardPhysicsHooks) {
     this.createMachine();
@@ -128,40 +129,52 @@ export class BoardPhysics {
 
   syncGoose(state: GooseState, canvasBounds: ScreenRect): void {
     this.gooseConnected = state.connected;
-    const live = new Set<string>();
-    for (const collider of state.colliders) {
-      live.add(collider.id);
-      let body = this.externalBodies.get(collider.id);
-      if (collider.kind === 'circle') {
-        const point = screenToCanvas(collider, canvasBounds, BOARD_WIDTH, BOARD_HEIGHT);
-        if (!body || !body.circleRadius) {
-          if (body) Composite.remove(this.engine.world, body);
-          body = Bodies.circle(point.x, point.y, collider.radius * BOARD_WIDTH / canvasBounds.width, {
-            isStatic: true, label: `goose:${collider.id}`, restitution: 0.82,
-          });
-          this.externalBodies.set(collider.id, body);
-          World.add(this.engine.world, body);
-        }
-        Body.setPosition(body, point);
-        Body.setVelocity(body, {
-          x: Math.max(-18, Math.min(18, collider.velocityX)),
-          y: Math.max(-18, Math.min(18, collider.velocityY)),
+    const carriedNow = new Set<string>();
+    for (const carry of state.carries) {
+      const record = [...this.balls.values()].find((candidate) =>
+        candidate.appId === carry.ballId);
+      if (!record) continue;
+      const point = screenToCanvas(carry, canvasBounds, BOARD_WIDTH, BOARD_HEIGHT);
+      Body.setPosition(record.body, point);
+      if (carry.released) {
+        Body.setStatic(record.body, false);
+        Body.setVelocity(record.body, {
+          x: carry.velocityX,
+          y: Math.max(1.5, carry.velocityY),
         });
       } else {
-        const topLeft = screenToCanvas(collider.bounds, canvasBounds, BOARD_WIDTH, BOARD_HEIGHT);
-        const width = collider.bounds.width * BOARD_WIDTH / canvasBounds.width;
-        const height = collider.bounds.height * BOARD_HEIGHT / canvasBounds.height;
-        if (!body || body.circleRadius || Math.abs(body.bounds.max.x - body.bounds.min.x - width) > 1) {
-          if (body) Composite.remove(this.engine.world, body);
-          body = Bodies.rectangle(topLeft.x + width / 2, topLeft.y + height / 2, width, height, {
-            isStatic: true, label: `goose-window:${collider.id}`, restitution: 0.72,
-          });
-          this.externalBodies.set(collider.id, body);
-          World.add(this.engine.world, body);
-        }
-        Body.setPosition(body, { x: topLeft.x + width / 2, y: topLeft.y + height / 2 });
-        Body.setVelocity(body, { x: collider.velocityX, y: collider.velocityY });
+        carriedNow.add(carry.ballId);
+        if (!record.body.isStatic) Body.setStatic(record.body, true);
+        Body.setVelocity(record.body, { x: 0, y: 0 });
       }
+    }
+    for (const ballId of this.carriedBalls) {
+      if (carriedNow.has(ballId)) continue;
+      const record = [...this.balls.values()].find((candidate) =>
+        candidate.appId === ballId);
+      if (record?.body.isStatic) Body.setStatic(record.body, false);
+    }
+    this.carriedBalls = carriedNow;
+    const live = new Set<string>();
+    for (const collider of state.colliders) {
+      // Goose bodies are visual tracking data, not physical ball colliders.
+      // Intentional interaction happens through the carry protocol below.
+      if (collider.kind === 'circle') continue;
+      live.add(collider.id);
+      let body = this.externalBodies.get(collider.id);
+      const topLeft = screenToCanvas(collider.bounds, canvasBounds, BOARD_WIDTH, BOARD_HEIGHT);
+      const width = collider.bounds.width * BOARD_WIDTH / canvasBounds.width;
+      const height = collider.bounds.height * BOARD_HEIGHT / canvasBounds.height;
+      if (!body || body.circleRadius || Math.abs(body.bounds.max.x - body.bounds.min.x - width) > 1) {
+        if (body) Composite.remove(this.engine.world, body);
+        body = Bodies.rectangle(topLeft.x + width / 2, topLeft.y + height / 2, width, height, {
+          isStatic: true, label: `goose-window:${collider.id}`, restitution: 0.72,
+        });
+        this.externalBodies.set(collider.id, body);
+        World.add(this.engine.world, body);
+      }
+      Body.setPosition(body, { x: topLeft.x + width / 2, y: topLeft.y + height / 2 });
+      Body.setVelocity(body, { x: collider.velocityX, y: collider.velocityY });
     }
     for (const [id, body] of this.externalBodies) {
       if (!live.has(id)) {

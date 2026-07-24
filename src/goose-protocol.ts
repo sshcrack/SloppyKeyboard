@@ -1,6 +1,7 @@
 import {
   GOOSE_PROTOCOL_VERSION,
   GooseCollider,
+  GooseCarry,
   GooseState,
 } from './contracts';
 
@@ -28,5 +29,23 @@ export const parseGooseMessage = (line: string, now = Date.now()): GooseState | 
       colliders.push(collider as unknown as GooseCollider);
     } else return null;
   }
-  return { protocolVersion: GOOSE_PROTOCOL_VERSION, connected: true, receivedAt: now, colliders };
+  const carries: GooseCarry[] = [];
+  if (message.carries !== undefined) {
+    if (!Array.isArray(message.carries)) return null;
+    for (const raw of message.carries) {
+      if (!raw || typeof raw !== 'object') return null;
+      const carry = raw as Record<string, unknown>;
+      if (typeof carry.ballId !== 'string'
+        || ![carry.x, carry.y, carry.velocityX, carry.velocityY].every(finite)
+        || typeof carry.released !== 'boolean') return null;
+      carries.push(carry as unknown as GooseCarry);
+    }
+  }
+  return {
+    protocolVersion: GOOSE_PROTOCOL_VERSION,
+    connected: true,
+    receivedAt: now,
+    colliders,
+    carries,
+  };
 };

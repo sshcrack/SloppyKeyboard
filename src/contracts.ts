@@ -52,7 +52,7 @@ export interface BallSnapshot {
   velocityX: number; velocityY: number; space: 'screen'; huntEligible: boolean;
 }
 export interface GooseCircleCollider {
-  id: 'body' | 'head'; kind: 'circle'; x: number; y: number; radius: number;
+  id: string; kind: 'circle'; x: number; y: number; radius: number;
   velocityX: number; velocityY: number;
 }
 export interface GooseWindowCollider {
@@ -60,9 +60,19 @@ export interface GooseWindowCollider {
   velocityX: number; velocityY: number;
 }
 export type GooseCollider = GooseCircleCollider | GooseWindowCollider;
+export interface GooseCarry {
+  ballId: string;
+  x: number;
+  y: number;
+  velocityX: number;
+  velocityY: number;
+  released: boolean;
+}
 export interface GooseState {
   protocolVersion: typeof GOOSE_PROTOCOL_VERSION;
-  connected: boolean; receivedAt: number; colliders: GooseCollider[]; error?: string;
+  connected: boolean; receivedAt: number; colliders: GooseCollider[];
+  carries: GooseCarry[];
+  error?: string;
 }
 export interface EscapedBall { ball: BallSnapshot; workArea: ScreenRect }
 export interface GooseSetupProgress {

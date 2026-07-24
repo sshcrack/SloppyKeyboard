@@ -1,4 +1,4 @@
-import { BrowserWindow } from 'electron';
+import { BrowserWindow, screen, type Rectangle } from 'electron';
 import { createMathQuestions } from './minigame-data';
 
 export const fakeBluescreenDocument = (): string => {
@@ -31,11 +31,12 @@ document.querySelector('.keypad').addEventListener('click',e=>{const button=e.ta
 export const openFakeBluescreen = (
   onCreated?: (window: BrowserWindow) => void,
   onFatalMistake?: () => void,
+  displayBounds: Rectangle = screen.getPrimaryDisplay().bounds,
 ): Promise<void> => new Promise((resolve) => {
   let allowClose = false;
+  const bounds = displayBounds;
   const window = new BrowserWindow({
-    fullscreen: true,
-    kiosk: true,
+    ...bounds,
     frame: false,
     focusable: true,
     alwaysOnTop: true,
@@ -45,6 +46,9 @@ export const openFakeBluescreen = (
       sandbox: true,
       contextIsolation: true,
       nodeIntegration: false,
+      // Keep this borderless cover in normal DWM composition. Exclusive
+      // fullscreen occlusion severely throttles Desktop Goose's WinForms loop.
+      backgroundThrottling: false,
     },
   });
   onCreated?.(window);
@@ -62,9 +66,7 @@ export const openFakeBluescreen = (
     }
   });
   window.once('ready-to-show', () => {
-    // Explicitly enter fullscreen before the window is shown so it never
-    // briefly appears as a regular desktop window.
-    window.setFullScreen(true);
+    window.setBounds(bounds);
     window.show();
     window.focus();
   });

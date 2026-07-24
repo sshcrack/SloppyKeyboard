@@ -45,31 +45,20 @@ window.sloppyKeyboard.onEscapedBall(({ ball, workArea }) => {
 const syncGoose = (state: GooseState): void => {
   const live = new Set<string>();
   for (const item of state.colliders) {
+    if (item.kind === 'circle') continue;
     live.add(item.id);
     let body = colliders.get(item.id);
-    if (item.kind === 'circle') {
-      const point = local(item.x, item.y);
-      if (!body || !body.circleRadius) {
-        if (body) Composite.remove(engine.world, body);
-        body = Bodies.circle(point.x, point.y, item.radius, { isStatic: true, restitution: 0.82 });
-        colliders.set(item.id, body);
-        World.add(engine.world, body);
-      }
-      Body.setPosition(body, point);
-      Body.setVelocity(body, { x: Math.max(-18, Math.min(18, item.velocityX)), y: Math.max(-18, Math.min(18, item.velocityY)) });
-    } else {
-      const point = local(item.bounds.x, item.bounds.y);
-      const width = item.bounds.width;
-      const height = item.bounds.height;
-      if (!body || body.circleRadius || Math.abs(body.bounds.max.x - body.bounds.min.x - width) > 1) {
-        if (body) Composite.remove(engine.world, body);
-        body = Bodies.rectangle(point.x + width / 2, point.y + height / 2, width, height, { isStatic: true, restitution: 0.72 });
-        colliders.set(item.id, body);
-        World.add(engine.world, body);
-      }
-      Body.setPosition(body, { x: point.x + width / 2, y: point.y + height / 2 });
-      Body.setVelocity(body, { x: item.velocityX, y: item.velocityY });
+    const point = local(item.bounds.x, item.bounds.y);
+    const width = item.bounds.width;
+    const height = item.bounds.height;
+    if (!body || body.circleRadius || Math.abs(body.bounds.max.x - body.bounds.min.x - width) > 1) {
+      if (body) Composite.remove(engine.world, body);
+      body = Bodies.rectangle(point.x + width / 2, point.y + height / 2, width, height, { isStatic: true, restitution: 0.72 });
+      colliders.set(item.id, body);
+      World.add(engine.world, body);
     }
+    Body.setPosition(body, { x: point.x + width / 2, y: point.y + height / 2 });
+    Body.setVelocity(body, { x: item.velocityX, y: item.velocityY });
   }
   for (const [id, body] of colliders) if (!live.has(id)) {
     Composite.remove(engine.world, body);

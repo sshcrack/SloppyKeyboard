@@ -45,6 +45,7 @@ declare const DESKTOP_OVERLAY_PRELOAD_WEBPACK_ENTRY: string;
 
 let mainWindow: BrowserWindow | null = null;
 let overlayWindow: BrowserWindow | null = null;
+let shutdownStarted = false;
 const ballSources = new Map<number, BallSnapshot[]>();
 let latestBoardBounds: ScreenRect = { x: 0, y: 0, width: 880, height: 560 };
 let latestMysterySlot: ScreenRect | null = null;
@@ -62,6 +63,15 @@ const appIconPath = join(
   'icon',
   'sloppy-keyboard.ico',
 );
+
+const shutDown = (): void => {
+  if (shutdownStarted) return;
+  shutdownStarted = true;
+  gooseBridge.stop();
+  closeMinigameWindows();
+  closeDesktopGoose();
+  uninstallHook();
+};
 
 if (require('electron-squirrel-startup')) {
   app.quit();
@@ -106,6 +116,17 @@ const createWindow = (): void => {
   // visible prevents the keyboard from behaving like a normal foreground app.
   mainWindow.on('minimize', () => mainWindow?.setSkipTaskbar(false));
   mainWindow.on('restore', () => mainWindow?.setSkipTaskbar(true));
+  // Start external cleanup before Electron begins its final quit sequence. In
+  // particular, Desktop Goose's own Close Goose.bat gets time to terminate
+  // the extra windows/processes it creates.
+  mainWindow.once('close', shutDown);
+  // The desktop-ball overlay is a separate invisible window, so it would keep
+  // Electron alive after the keyboard closes unless the main window explicitly
+  // ends the application.
+  mainWindow.once('closed', () => {
+    mainWindow = null;
+    app.quit();
+  });
 
   void mainWindow.loadURL(MAIN_WINDOW_WEBPACK_ENTRY);
   mainWindow.once('ready-to-show', () => mainWindow?.showInactive());
@@ -213,9 +234,4 @@ app.whenReady().then(() => {
 });
 
 app.on('window-all-closed', () => app.quit());
-app.on('will-quit', () => {
-  gooseBridge.stop();
-  closeMinigameWindows();
-  closeDesktopGoose();
-  uninstallHook();
-});
+app.on('will-quit', shutDown);

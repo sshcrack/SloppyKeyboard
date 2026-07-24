@@ -17,8 +17,10 @@ namespace SloppyKeyboardGoose
     public sealed class ModEntryPoint : IMod
     {
         const string PipeName = "sloppy-keyboard-goose-v1";
+        const string DiagnosticsFileName = "sloppy-keyboard-goose.log";
         static readonly object Sync = new object();
         static readonly Dictionary<string, BallTarget> Balls = new Dictionary<string, BallTarget>();
+        static readonly HashSet<string> ClaimedBalls = new HashSet<string>();
         static readonly Dictionary<long, WindowSample> Windows = new Dictionary<long, WindowSample>();
         static Thread pipeThread;
         static NamedPipeClientStream pipe;
@@ -27,12 +29,31 @@ namespace SloppyKeyboardGoose
         static long lastSnapshot;
         internal static float SlotX;
         internal static float SlotY;
+        static string carriedBallId;
+        static string releasedBallId;
+        static float carryX;
+        static float carryY;
+        static float carryVelocityX;
+        static float carryVelocityY;
 
         void IMod.Init()
         {
+            WriteDiagnostic("IMod.Init invoked; Sloppy Keyboard Goose mod loaded.");
             pipeThread = new Thread(PipeLoop) { IsBackground = true, Name = "Sloppy Keyboard pipe" };
             pipeThread.Start();
             InjectionPoints.PostTickEvent += PostTick;
+        }
+
+        // This is deliberately independent of the named-pipe integration: it
+        // proves that Desktop Goose discovered and initialized this DLL.
+        static void WriteDiagnostic(string message)
+        {
+            try
+            {
+                File.AppendAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, DiagnosticsFileName),
+                    DateTime.UtcNow.ToString("o", CultureInfo.InvariantCulture) + " " + message + Environment.NewLine);
+            }
+            catch { }
         }
 
         static void PipeLoop()
@@ -83,6 +104,7 @@ namespace SloppyKeyboardGoose
             {
                 Balls.Clear();
                 foreach (var item in found) Balls[item.Key] = item.Value;
+                ClaimedBalls.RemoveWhere(id => !found.ContainsKey(id));
             }
         }
 
@@ -98,13 +120,15 @@ namespace SloppyKeyboardGoose
             lock (Sync)
             {
                 if (Balls.Count > 0)
-                    nearest = Balls.Values.OrderBy(ball => DistanceSquared(goose.position.x, goose.position.y, ball.X, ball.Y)).FirstOrDefault();
+                    nearest = Balls.Values.Where(ball => !ClaimedBalls.Contains(ball.Id))
+                        .OrderBy(ball => DistanceSquared(goose.position.x, goose.position.y, ball.X, ball.Y)).FirstOrDefault();
             }
             if (nearest == null) return;
             if (pendingTask < 0) pendingTask = goose.currentTask;
             // Wait until the built-in activity (including pulling a window) naturally changes task.
             if (goose.currentTask == pendingTask) return;
             SloppyBallHuntTask.Target = nearest;
+            lock (Sync) ClaimedBalls.Add(nearest.Id);
             API.Goose.setCurrentTaskByID(goose, SloppyBallHuntTask.TaskId, false);
             pendingTask = -1;
         }
@@ -112,6 +136,23 @@ namespace SloppyKeyboardGoose
         internal static bool IsLive(string id)
         {
             lock (Sync) return Balls.ContainsKey(id);
+        }
+
+        internal static void Carry(GooseEntity goose, string ballId)
+        {
+            carriedBallId = ballId;
+            carryX = goose.position.x + (float)Math.Cos(goose.direction) * 28;
+            carryY = goose.position.y + (float)Math.Sin(goose.direction) * 28;
+            carryVelocityX = goose.velocity.x;
+            carryVelocityY = goose.velocity.y;
+        }
+
+        internal static void ReleaseCarry(GooseEntity goose)
+        {
+            releasedBallId = carriedBallId;
+            carriedBallId = null;
+            carryVelocityX = goose.velocity.x;
+            carryVelocityY = goose.velocity.y;
         }
 
         static float DistanceSquared(float ax, float ay, float bx, float by)
@@ -149,7 +190,15 @@ namespace SloppyKeyboardGoose
             }
             foreach (var closed in Windows.Where(item => now - item.Value.At > 100).Select(item => item.Key).ToArray())
                 Windows.Remove(closed);
-            try { output.WriteLine("{\"protocolVersion\":1,\"colliders\":[" + String.Join(",", colliders) + "]}"); }
+            var carries = new List<string>();
+            if (carriedBallId != null) carries.Add(CarryJson(carriedBallId, false));
+            if (releasedBallId != null) carries.Add(CarryJson(releasedBallId, true));
+            try
+            {
+                output.WriteLine("{\"protocolVersion\":1,\"colliders\":[" + String.Join(",", colliders)
+                    + "],\"carries\":[" + String.Join(",", carries) + "]}");
+                releasedBallId = null;
+            }
             catch { }
         }
 
@@ -164,6 +213,14 @@ namespace SloppyKeyboardGoose
             return String.Format(CultureInfo.InvariantCulture,
                 "{{\"id\":\"{0}\",\"kind\":\"circle\",\"x\":{1},\"y\":{2},\"radius\":{3},\"velocityX\":{4},\"velocityY\":{5}}}",
                 id, x, y, radius, vx, vy);
+        }
+
+        static string CarryJson(string ballId, bool released)
+        {
+            return String.Format(CultureInfo.InvariantCulture,
+                "{{\"ballId\":\"{0}\",\"x\":{1},\"y\":{2},\"velocityX\":{3},\"velocityY\":{4},\"released\":{5}}}",
+                ballId, carryX, carryY, carryVelocityX, carryVelocityY,
+                released ? "true" : "false");
         }
     }
 

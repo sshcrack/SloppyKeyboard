@@ -2,7 +2,7 @@ import { mkdtempSync, readFileSync, writeFileSync, mkdirSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { describe, expect, it } from 'vitest';
-import { installGooseMod } from './goose-installer';
+import { disableGooseModWarning, installGooseMod } from './goose-installer';
 
 describe('Goose mod installation', () => {
   it('preserves settings, makes one backup, and upgrades the DLL', () => {
@@ -31,5 +31,23 @@ describe('Goose mod installation', () => {
     writeFileSync(join(root, 'source.dll'), 'dll');
     expect(installGooseMod(join(root, 'GooseDesktop.exe'), join(root, 'source.dll')).targetDll)
       .toContain(join('Assets', 'Mods', 'SloppyKeyboard'));
+  });
+
+  it('patches the known Mod Enabler Warning once and preserves an executable backup', () => {
+    const root = mkdtempSync(join(tmpdir(), 'sloppy-goose-'));
+    const exe = join(root, 'GooseDesktop.exe');
+    const unpatched = Buffer.from([
+      0x10, 0x7E, 0x06, 0x00, 0x00, 0x04, 0x7B, 0xAC, 0x00, 0x00, 0x04, 0x2C, 0x1A,
+      0x72, 0xEF, 0x09, 0x00, 0x70, 0x72, 0x0A, 0x0C, 0x00, 0x70, 0x20,
+    ]);
+    writeFileSync(exe, unpatched);
+
+    expect(disableGooseModWarning(exe)).toBe(true);
+    expect(readFileSync(exe)).toEqual(Buffer.from([
+      0x10, 0x2B, 0x1F, 0x00, 0x00, 0x00, 0x7B, 0xAC, 0x00, 0x00, 0x04, 0x2C, 0x1A,
+      0x72, 0xEF, 0x09, 0x00, 0x70, 0x72, 0x0A, 0x0C, 0x00, 0x70, 0x20,
+    ]));
+    expect(readFileSync(`${exe}.pre-mod-warning-patch.bak`)).toEqual(unpatched);
+    expect(disableGooseModWarning(exe)).toBe(false);
   });
 });

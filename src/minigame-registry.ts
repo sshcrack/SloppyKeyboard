@@ -42,6 +42,10 @@ interface MinigameHandler {
 }
 
 const childWindows = new Set<BrowserWindow>();
+// Desktop Goose is launched as a detached process, so Electron does not manage
+// its lifetime. Keep the PIDs of instances we start in order to close only
+// those instances when Sloppy Keyboard exits.
+const launchedGoosePids = new Set<number>();
 const track = (window: BrowserWindow): BrowserWindow => {
   childWindows.add(window);
   window.once('closed', () => childWindows.delete(window));
@@ -51,14 +55,25 @@ const track = (window: BrowserWindow): BrowserWindow => {
 const openUselessWebsites = ({ mainWindow }: MinigameContext): Promise<MinigameResult> =>
   new Promise((resolve) => {
     const urls = sampleDistinct(USELESS_WEBSITES, 10);
+    const workArea = screen.getDisplayMatching(mainWindow.getBounds()).workArea;
+    const windowWidth = Math.min(760, workArea.width);
+    const windowHeight = Math.min(560, workArea.height);
+    const columns = Math.ceil(Math.sqrt(urls.length));
+    const rows = Math.ceil(urls.length / columns);
+    const maxX = Math.max(0, workArea.width - windowWidth);
+    const maxY = Math.max(0, workArea.height - windowHeight);
     let remaining = urls.length;
     mainWindow.hide();
     urls.forEach((url, index) => {
+      const column = index % columns;
+      const row = Math.floor(index / columns);
       const window = track(secureRemoteWindow({
-        x: 40 + index * 28,
-        y: 35 + index * 24,
-        width: 760,
-        height: 560,
+        // Anchor the first and last rows/columns at the display edges so the
+        // windows fill the whole active screen instead of cascading in one corner.
+        x: workArea.x + Math.round(maxX * column / Math.max(1, columns - 1)),
+        y: workArea.y + Math.round(maxY * row / Math.max(1, rows - 1)),
+        width: windowWidth,
+        height: windowHeight,
         alwaysOnTop: true,
         minimizable: false,
         title: `Useless website ${index + 1}/10`,
@@ -394,12 +409,20 @@ const runGoose = async (): Promise<MinigameResult> => {
     };
   }
   try {
-    spawn(executablePath, [], {
+    const goose = spawn(executablePath, [], {
       cwd: dirname(executablePath),
       detached: true,
       shell: false,
       stdio: 'ignore',
-    }).unref();
+    });
+    if (goose.pid !== undefined) launchedGoosePids.add(goose.pid);
+    goose.once('exit', () => {
+      if (goose.pid !== undefined) launchedGoosePids.delete(goose.pid);
+    });
+    goose.once('error', () => {
+      if (goose.pid !== undefined) launchedGoosePids.delete(goose.pid);
+    });
+    goose.unref();
     return { status: 'completed', message: 'GOOSE RELEASED' };
   } catch {
     return { status: 'failed', message: 'GOOSE COULD NOT BE LAUNCHED' };
@@ -431,8 +454,9 @@ const registry = new Map<MinigameId, MinigameHandler>([
   }],
   ['bluescreen', {
     descriptor: descriptor('bluescreen'),
-    run: async () => {
-      await openFakeBluescreen(track, shutDownLaptop);
+    run: async ({ mainWindow }) => {
+      const display = screen.getDisplayMatching(mainWindow.getBounds());
+      await openFakeBluescreen(track, shutDownLaptop, display.bounds);
       return { status: 'completed', message: 'RECOVERY COMPLETE' };
     },
   }],
@@ -455,18 +479,40 @@ export const closeMinigameWindows = (): void => {
 };
 
 export const closeDesktopGoose = (): void => {
+  for (const pid of launchedGoosePids) {
+    try {
+      // /T includes any helper processes spawned by Desktop Goose. Running
+      // taskkill detached lets it finish even while Electron is exiting.
+      const taskkill = spawn('taskkill.exe', ['/pid', String(pid), '/t', '/f'], {
+        detached: true,
+        shell: false,
+        stdio: 'ignore',
+        windowsHide: true,
+      });
+      taskkill.once('error', () => undefined);
+      taskkill.unref();
+    } catch {
+      // Continue closing any other instances and allow app shutdown to finish.
+    }
+  }
+  launchedGoosePids.clear();
+
+  // Desktop Goose's own shutdown script closes every Goose process, including
+  // instances that were not launched through this process.
   const executablePath = readGoosePath();
   if (!executablePath) return;
   const closeScript = join(dirname(executablePath), 'Close Goose.bat');
   if (!existsSync(closeScript)) return;
   try {
-    spawn('cmd.exe', ['/d', '/s', '/c', `"${closeScript}"`], {
+    const closeGoose = spawn('cmd.exe', ['/d', '/c', `call "${closeScript}"`], {
       cwd: dirname(executablePath),
       detached: true,
       shell: false,
       stdio: 'ignore',
       windowsHide: true,
-    }).unref();
+    });
+    closeGoose.once('error', () => undefined);
+    closeGoose.unref();
   } catch {
     // Application shutdown must continue if the optional Goose script fails.
   }
