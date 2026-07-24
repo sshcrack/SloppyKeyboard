@@ -5,7 +5,7 @@ import { BoardPhysics } from './board-physics';
 import { BoardRenderer, LANDING_FLASH_MS } from './board-renderer';
 import { BoardState } from './board-state';
 import { MinigameReel } from './minigame-reel';
-import type { GooseState, MinigameId, ScreenRect } from './contracts';
+import type { DebugSurprise, GooseState, MinigameId, ScreenRect } from './contracts';
 import { MINIGAMES } from './minigame-data';
 import { DiceRoll } from './dice-roll';
 import { EnterStamp } from './enter-stamp';
@@ -252,6 +252,14 @@ const runDebugMinigame = async (id: MinigameId): Promise<void> => {
   }
 };
 
+const runDebugSurprise = async (surprise: DebugSurprise): Promise<void> => {
+  if (phase !== 'ready') { showStatus('DEBUG SURPRISE BLOCKED · WAIT FOR IDLE BOARD', true); return; }
+  try {
+    const result = await window.sloppyKeyboard.debugRunSurprise(surprise);
+    showStatus(result.message ?? 'DEBUG SURPRISE COMPLETE', result.status === 'failed');
+  } catch { showStatus('DEBUG SURPRISE FAILED SAFELY', true); }
+};
+
 void window.sloppyKeyboard.debugMode().then((enabled) => {
   if (!enabled) return;
   debugPanel.hidden = false;
@@ -260,6 +268,17 @@ void window.sloppyKeyboard.debugMode().then((enabled) => {
     button.type = 'button';
     button.textContent = game.label;
     button.addEventListener('click', () => void runDebugMinigame(game.id));
+    debugButtons.append(button);
+  }
+  const surprises: Array<[DebugSurprise, string]> = [
+    ['fallen-balls', 'Fallen balls'], ['fracture', 'Desktop fracture'],
+    ['cameo', 'Pixel creature'], ['pixel-goose', 'Pixel Goose cursor'],
+    ['omen-title', 'Omen title'], ['eyes', 'Eyes now'],
+  ];
+  for (const [id, label] of surprises) {
+    const button = document.createElement('button');
+    button.type = 'button'; button.textContent = `SURPRISE · ${label}`;
+    button.addEventListener('click', () => void runDebugSurprise(id));
     debugButtons.append(button);
   }
 });

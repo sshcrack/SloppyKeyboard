@@ -11,6 +11,7 @@ import {
   IPC_DRAW_MINIGAME,
   IPC_DEBUG_MODE,
   IPC_DEBUG_RUN_MINIGAME,
+  IPC_DEBUG_RUN_SURPRISE,
   IPC_MINIMIZE_WINDOW,
   IPC_PRESS_SPECIAL_KEY,
   IPC_RUN_MINIGAME,
@@ -25,6 +26,8 @@ import {
   IPC_DESKTOP_EFFECT,
   SPECIAL_KEYS,
   SpecialKey,
+  DEBUG_SURPRISES,
+  DebugSurprise,
 } from './contracts';
 import { pressSpecialKey, typeCharacter } from './input-service';
 import { drawMinigame, isMinigameId } from './minigame-data';
@@ -260,6 +263,24 @@ app.whenReady().then(() => {
         status: 'failed' as const,
         message: 'DEBUG MINIGAMES ARE DISABLED',
       }));
+  ipcMain.handle(IPC_DEBUG_RUN_SURPRISE, (_event, raw: unknown): MinigameResult => {
+    if (!debugMinigames || !DEBUG_SURPRISES.includes(raw as DebugSurprise)) {
+      return { status: 'failed', message: 'DEBUG SURPRISES ARE DISABLED' };
+    }
+    const point = screen.getCursorScreenPoint();
+    const surprise = raw as DebugSurprise;
+    if (surprise === 'fallen-balls') desktopEffect({ kind: 'balls', x: point.x, y: point.y, count: 15 });
+    else if (surprise === 'fracture') desktopEffect({ kind: 'fracture', x: point.x, y: point.y });
+    else if (surprise === 'cameo') desktopEffect({ kind: 'cameo', x: point.x, y: point.y });
+    else if (surprise === 'pixel-goose') desktopEffect({ kind: 'cursor-goose', x: point.x, y: point.y });
+    else if (surprise === 'omen-title') desktopEffect({ kind: 'omen-title' });
+    else {
+      const display = screen.getDisplayNearestPoint(point);
+      desktopEffect({ kind: 'eyes', x: point.x, y: point.y,
+        side: point.x - display.workArea.x < display.workArea.x + display.workArea.width - point.x ? 'left' : 'right' });
+    }
+    return { status: 'completed', message: `DEBUG ${surprise.toUpperCase()} COMPLETE` };
+  });
   ipcMain.on(IPC_CLOSE_WINDOW, (event) =>
     BrowserWindow.fromWebContents(event.sender)?.close(),
   );

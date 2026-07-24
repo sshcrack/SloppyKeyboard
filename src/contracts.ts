@@ -5,6 +5,7 @@ export const IPC_DRAW_MINIGAME = 'sloppy-keyboard:draw-minigame';
 export const IPC_RUN_MINIGAME = 'sloppy-keyboard:run-minigame';
 export const IPC_DEBUG_MODE = 'sloppy-keyboard:debug-mode';
 export const IPC_DEBUG_RUN_MINIGAME = 'sloppy-keyboard:debug-run-minigame';
+export const IPC_DEBUG_RUN_SURPRISE = 'sloppy-keyboard:debug-run-surprise';
 export const IPC_PRESS_SPECIAL_KEY = 'sloppy-keyboard:press-special-key';
 export const IPC_GOOSE_STATE = 'sloppy-keyboard:goose-state';
 export const IPC_GOOSE_BALLS = 'sloppy-keyboard:goose-balls';
@@ -49,6 +50,10 @@ export type DesktopEffect =
   | { kind: 'cursor-goose'; x: number; y: number }
   | { kind: 'omen-title' }
   | { kind: 'eyes'; x: number; y: number; side: 'left' | 'right' };
+export const DEBUG_SURPRISES = [
+  'fallen-balls', 'fracture', 'cameo', 'pixel-goose', 'omen-title', 'eyes',
+] as const;
+export type DebugSurprise = typeof DEBUG_SURPRISES[number];
 
 export interface TypeResult {
   ok: boolean;
@@ -103,6 +108,7 @@ export interface SloppyKeyboardApi {
   runMinigame: (id: MinigameId) => Promise<MinigameResult>;
   debugMode: () => Promise<boolean>;
   debugRunMinigame: (id: MinigameId) => Promise<MinigameResult>;
+  debugRunSurprise: (surprise: DebugSurprise) => Promise<MinigameResult>;
   closeWindow: () => void;
   minimizeWindow: () => void;
   sendGooseBalls: (balls: BallSnapshot[], boardBounds: ScreenRect, mysterySlot: ScreenRect | null) => void;

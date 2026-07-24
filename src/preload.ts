@@ -4,6 +4,7 @@ import {
   IPC_DRAW_MINIGAME,
   IPC_DEBUG_MODE,
   IPC_DEBUG_RUN_MINIGAME,
+  IPC_DEBUG_RUN_SURPRISE,
   IPC_MINIMIZE_WINDOW,
   IPC_PRESS_SPECIAL_KEY,
   IPC_RUN_MINIGAME,
@@ -25,6 +26,7 @@ const api: SloppyKeyboardApi = {
   runMinigame: (id) => ipcRenderer.invoke(IPC_RUN_MINIGAME, id),
   debugMode: () => ipcRenderer.invoke(IPC_DEBUG_MODE),
   debugRunMinigame: (id) => ipcRenderer.invoke(IPC_DEBUG_RUN_MINIGAME, id),
+  debugRunSurprise: (surprise) => ipcRenderer.invoke(IPC_DEBUG_RUN_SURPRISE, surprise),
   closeWindow: () => ipcRenderer.send(IPC_CLOSE_WINDOW),
   minimizeWindow: () => ipcRenderer.send(IPC_MINIMIZE_WINDOW),
   sendGooseBalls: (balls, boardBounds, mysterySlot) =>
