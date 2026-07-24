@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="680" viewBox="0 0 960 680" role="img" aria-labelledby="title desc">
+  <title id="title">How Sloppy Keyboard works</title>
+  <desc id="desc">Three Windows 95 dialogs explain the keyboard, its three-step operation, and the suspicious question-mark slot.</desc>
+
+  <!-- About dialog -->
+  <rect x="3" y="3" width="954" height="184" fill="#c0c0c0" stroke="#000" stroke-width="3"/>
+  <path d="M3 187V3H957" fill="none" stroke="#fff" stroke-width="4"/>
+  <rect x="10" y="10" width="940" height="30" fill="#000080"/>
+  <text x="22" y="31" fill="#fff" font-family="Tahoma, Verdana, sans-serif" font-size="16" font-weight="700">What is this thing?</text>
+  <text x="938" y="31" fill="#fff" font-family="Tahoma, sans-serif" font-size="17" font-weight="700" text-anchor="end">×</text>
+  <text x="35" y="72" fill="#000" font-family="Tahoma, Verdana, sans-serif" font-size="16">
+    <tspan x="35" dy="0">Normal keyboards let you choose a letter and type it immediately.</tspan>
+    <tspan x="35" dy="29">That felt a little too efficient.</tspan>
+    <tspan x="35" dy="29">Sloppy Keyboard makes gravity handle the editorial decisions instead.</tspan>
+  </text>
+  <rect x="424" y="145" width="112" height="27" fill="#c0c0c0" stroke="#fff" stroke-width="3"/>
+  <path d="M536 145V172H424" fill="none" stroke="#000" stroke-width="3"/>
+  <text x="480" y="165" fill="#000" font-family="Tahoma, sans-serif" font-size="14" font-weight="700" text-anchor="middle">OK</text>
+
+  <!-- How it types -->
+  <rect x="3" y="210" width="954" height="238" fill="#c0c0c0" stroke="#000" stroke-width="3"/>
+  <path d="M3 448V210H957" fill="none" stroke="#fff" stroke-width="4"/>
+  <rect x="10" y="217" width="940" height="30" fill="#000080"/>
+  <text x="22" y="238" fill="#fff" font-family="Tahoma, Verdana, sans-serif" font-size="16" font-weight="700">How does it type?</text>
+  <g font-family="Tahoma, Verdana, sans-serif" text-anchor="middle">
+    <g transform="translate(22 266)">
+      <rect width="286" height="157" fill="#e6e6e6" stroke="#808080" stroke-width="3"/>
+      <rect x="8" y="8" width="270" height="34" fill="#000080"/>
+      <text x="143" y="31" fill="#fff" font-size="17" font-weight="700">1. CLICK</text>
+      <text x="143" y="80" fill="#000" font-size="15">
+        <tspan x="143">Click the blue drop zone.</tspan>
+        <tspan x="143" dy="26">A ball enters the workplace.</tspan>
+      </text>
+    </g>
+    <g transform="translate(337 266)">
+      <rect width="286" height="157" fill="#e6e6e6" stroke="#808080" stroke-width="3"/>
+      <rect x="8" y="8" width="270" height="34" fill="#000080"/>
+      <text x="143" y="31" fill="#fff" font-size="17" font-weight="700">2. HOPE</text>
+      <text x="143" y="80" fill="#000" font-size="15">
+        <tspan x="143">It negotiates with several</tspan>
+        <tspan x="143" dy="26">rows of metal pegs.</tspan>
+      </text>
+    </g>
+    <g transform="translate(652 266)">
+      <rect width="286" height="157" fill="#e6e6e6" stroke="#808080" stroke-width="3"/>
+      <rect x="8" y="8" width="270" height="34" fill="#000080"/>
+      <text x="143" y="31" fill="#fff" font-size="17" font-weight="700">3. RECEIVE</text>
+      <text x="143" y="80" fill="#000" font-size="15">
+        <tspan x="143">The landing letter appears</tspan>
+        <tspan x="143" dy="26">wherever you were typing.</tspan>
+      </text>
+    </g>
+  </g>
+
+  <!-- Warning dialog -->
+  <rect x="3" y="471" width="954" height="206" fill="#c0c0c0" stroke="#000" stroke-width="3"/>
+  <path d="M3 677V471H957" fill="none" stroke="#fff" stroke-width="4"/>
+  <rect x="10" y="478" width="940" height="30" fill="#000080"/>
+  <text x="22" y="499" fill="#fff" font-family="Tahoma, Verdana, sans-serif" font-size="16" font-weight="700">⚠ A perfectly normal warning</text>
+  <text x="938" y="499" fill="#fff" font-family="Tahoma, sans-serif" font-size="17" font-weight="700" text-anchor="end">×</text>
+  <polygon points="74,535 112,604 36,604" fill="#ffff00" stroke="#000" stroke-width="4"/>
+  <text x="74" y="592" fill="#000" font-family="Tahoma, sans-serif" font-size="45" font-weight="700" text-anchor="middle">!</text>
+  <text x="145" y="547" fill="#000" font-family="Tahoma, Verdana, sans-serif" font-size="16">
+    <tspan x="145">One of the slots contains a question mark.</tspan>
+    <tspan x="145" dy="30">It does not type a question mark.</tspan>
+    <tspan x="145" dy="30" font-weight="700">It has other plans.</tspan>
+  </text>
+  <rect x="716" y="620" width="190" height="34" fill="#c0c0c0" stroke="#fff" stroke-width="3"/>
+  <path d="M906 620V654H716" fill="none" stroke="#000" stroke-width="3"/>
+  <text x="811" y="643" fill="#000" font-family="Tahoma, sans-serif" font-size="14" font-weight="700" text-anchor="middle">Sounds fun</text>
+</svg>

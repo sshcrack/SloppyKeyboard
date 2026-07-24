@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="215" viewBox="0 0 960 215" role="img" aria-labelledby="title desc">
+  <title id="title">Sloppy Keyboard Setup Wizard</title>
+  <desc id="desc">A Windows 95 setup window and taskbar.</desc>
+  <rect x="3" y="3" width="954" height="162" fill="#c0c0c0" stroke="#000" stroke-width="3"/>
+  <path d="M3 165V3H957" fill="none" stroke="#fff" stroke-width="4"/>
+  <rect x="10" y="10" width="940" height="30" fill="#000080"/>
+  <text x="22" y="31" fill="#fff" font-family="Tahoma, Verdana, sans-serif" font-size="16" font-weight="700">Sloppy Keyboard Setup Wizard</text>
+  <rect x="20" y="54" width="110" height="94" fill="#fff"/>
+  <rect x="43" y="76" width="64" height="52" rx="3" fill="#4040a0" stroke="#000" stroke-width="3"/>
+  <rect x="51" y="82" width="48" height="25" fill="#c0c0c0"/>
+  <circle cx="91" cy="119" r="4" fill="#fff"/>
+  <text x="158" y="78" fill="#000" font-family="Tahoma, Verdana, sans-serif" font-size="18" font-weight="700">Welcome to the Sloppy Keyboard Setup Wizard</text>
+  <text x="158" y="108" fill="#000" font-family="Tahoma, Verdana, sans-serif" font-size="15">This wizard installs approximately one keyboard and several poor decisions.</text>
+  <text x="158" y="136" fill="#000080" font-family="Tahoma, Verdana, sans-serif" font-size="15" font-weight="700">Windows only. Obviously.</text>
+  <rect x="0" y="178" width="960" height="37" fill="#c0c0c0"/>
+  <path d="M0 178H960" stroke="#fff" stroke-width="3"/>
+  <rect x="6" y="184" width="94" height="26" fill="#c0c0c0" stroke="#fff" stroke-width="3"/>
+  <path d="M100 184V210H6" fill="none" stroke="#000" stroke-width="3"/>
+  <text x="53" y="203" fill="#000" font-family="Tahoma, sans-serif" font-size="14" font-weight="700" text-anchor="middle">▣ Start</text>
+  <rect x="111" y="184" width="275" height="26" fill="#e0e0e0" stroke="#808080" stroke-width="2"/>
+  <text x="125" y="202" fill="#000" font-family="Tahoma, sans-serif" font-size="13">⌨  Sloppy Keyboard</text>
+  <rect x="842" y="184" width="112" height="26" fill="#c0c0c0" stroke="#808080" stroke-width="2"/>
+  <text x="898" y="202" fill="#000" font-family="Tahoma, sans-serif" font-size="13" text-anchor="middle">12:00 PM</text>
+</svg>
