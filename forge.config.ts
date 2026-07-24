@@ -62,6 +62,14 @@ const config: ForgeConfig = {
               js: './src/preload.ts',
             },
           },
+          {
+            html: './src/cup-shuffle.html',
+            js: './src/cup-shuffle.ts',
+            name: 'cup_shuffle',
+            preload: {
+              js: './src/preload.ts',
+            },
+          },
         ],
       },
     }),

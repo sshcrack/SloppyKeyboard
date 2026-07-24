@@ -201,7 +201,7 @@ const runMinigame = async (id: unknown): Promise<MinigameResult> => {
   surprises.begin('minigame');
   try {
     const result = await runRegisteredMinigame(id, {
-      mainWindow, desktopEffect, cupPreload: MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY,
+      mainWindow, desktopEffect,
     });
     if (result.status === 'completed' && !omenUsed && Math.random() < 0.05) scheduleOmen();
     return result;
