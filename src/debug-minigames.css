@@ -1,0 +1,42 @@
+.debug-minigames {
+  position: fixed;
+  z-index: 9;
+  top: 74px;
+  left: 12px;
+  width: 190px;
+  padding: 3px;
+  border: 2px solid;
+  border-color: #fff #000 #000 #fff;
+  background: var(--win-gray);
+  box-shadow: 4px 4px 0 rgb(0 0 0 / 45%);
+}
+
+.debug-minigames[hidden] {
+  display: none;
+}
+
+.debug-minigames__title {
+  margin-bottom: 4px;
+  padding: 4px;
+  color: #fff;
+  background: #800080;
+  font-weight: 700;
+}
+
+#debug-minigame-buttons {
+  display: grid;
+  gap: 3px;
+}
+
+#debug-minigame-buttons button {
+  min-height: 25px;
+  border: 2px solid;
+  border-color: #fff #000 #000 #fff;
+  background: var(--win-gray);
+  text-align: left;
+}
+
+#debug-minigame-buttons button:active {
+  padding: 3px 1px 1px 3px;
+  border-color: #000 #fff #fff #000;
+}

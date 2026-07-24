@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        overflow: hidden;
+        color: #fff;
+        background: #000;
+        font: 700 11px "Courier New", monospace;
+      }
+      video {
+        width: 100vw;
+        height: 100vh;
+        object-fit: cover;
+      }
+      .tag {
+        position: fixed;
+        top: 8px;
+        left: 8px;
+        padding: 5px 8px;
+        border: 1px solid #fff;
+        background: #f00;
+      }
+    </style>
+  </head>
+  <body>
+    <video id="short" autoplay loop playsinline></video>
+    <div id="tag" class="tag"></div>
+    <script>
+      const parameters = new URLSearchParams(location.search);
+      const video = document.querySelector('#short');
+      video.src = parameters.get('file') || '';
+      document.querySelector('#tag').textContent =
+        `LOCAL SHORT ${parameters.get('number') || ''}`;
+      video.play().catch(() => undefined);
+    </script>
+  </body>
+</html>

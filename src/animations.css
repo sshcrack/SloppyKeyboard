@@ -1,0 +1,14 @@
+@keyframes key-flash {
+  50% {
+    color: #fff;
+    background: var(--win-blue);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+  }
+}

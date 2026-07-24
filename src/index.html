@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1"
+    />
+    <title>AWESOME-KEYBOARD!</title>
+  </head>
+  <body>
+    <main class="machine">
+      <header class="titlebar">
+        <div class="brand">
+          <span class="brand__icon" aria-hidden="true">⌨</span>
+          <h1>Awesome Keyboard!</h1>
+        </div>
+        <div class="titlebar__right">
+          <button
+            id="minimize"
+            class="window-button"
+            type="button"
+            aria-label="Minimize Awesome Keyboard"
+            title="Minimize"
+          >_</button>
+          <button
+            id="close"
+            class="window-button"
+            type="button"
+            aria-label="Close Awesome Keyboard"
+          >×</button>
+        </div>
+      </header>
+
+      <section class="instruction">
+        <button class="menu-label" type="button"><u>F</u>ile</button>
+        <button class="menu-label" type="button"><u>H</u>elp</button>
+        <p>Click the blue drop zone to release a ball.</p>
+        <div class="special-keys" aria-label="Skill-check special keys">
+          <button class="special-key" type="button" data-special-key="backspace">
+            <span>⌫</span> Backspace
+          </button>
+          <button class="special-key" type="button" data-special-key="enter">
+            <span>↵</span> Enter
+          </button>
+        </div>
+        <div class="batch">
+          Balls: <strong id="ball-count">00</strong>
+        </div>
+      </section>
+
+      <section class="board-shell" aria-label="Galton board keyboard">
+        <canvas id="board" width="880" height="560"></canvas>
+        <div class="glass-glare" aria-hidden="true"></div>
+      </section>
+
+      <aside id="debug-minigames" class="debug-minigames" hidden>
+        <div class="debug-minigames__title">DEBUG · MANUAL MINIGAMES</div>
+        <div id="debug-minigame-buttons"></div>
+      </aside>
+
+      <section id="selector" class="selector" hidden aria-live="polite">
+        <div class="selector__window">
+          <div class="selector__titlebar">
+            <span>⚠ Mystery Slot Selector</span>
+          </div>
+          <h2 id="selector-title">SELECTING PENALTY...</h2>
+          <div class="reel-viewport">
+            <div id="reel-track" class="reel-track"></div>
+            <div class="reel-marker" aria-hidden="true"></div>
+          </div>
+          <p id="selector-result">The machine is deciding.</p>
+        </div>
+      </section>
+
+      <section
+        id="skill-check"
+        class="skill-check"
+        hidden
+        aria-label="Special key timing challenge"
+      >
+        <div class="skill-check__panel">
+          <div class="skill-check__titlebar">SPECIAL KEY SECURITY CHECK</div>
+          <p id="skill-check-label">Click when the needle crosses the green zone.</p>
+          <div class="skill-check__dial" aria-hidden="true">
+            <div class="skill-check__target"></div>
+            <div class="skill-check__hub"></div>
+            <div class="skill-check__needle"></div>
+          </div>
+          <strong id="skill-check-result">LEFT-CLICK TO ACTIVATE</strong>
+        </div>
+      </section>
+
+      <footer class="readout">
+        <span id="status">READY · CLICK THE DROP RAIL</span>
+        <div class="typed">
+          Last key:
+          <strong id="typed-value">–</strong>
+        </div>
+      </footer>
+    </main>
+    <script src="./renderer.ts"></script>
+  </body>
+</html>
