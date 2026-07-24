@@ -24,12 +24,12 @@ const videos = [
   {
     file: 'eRXE8Aebp7s.mp4',
     url: 'https://www.youtube.com/watch?v=eRXE8Aebp7s',
-    extraArgs: ['--download-sections', '*00:00:00-01:00:00'],
+    extraArgs: ['--download-sections', '*00:00:00-00:00:30'],
   },
   {
     file: 'J9dvPQuHz-I.mp4',
     url: 'https://www.youtube.com/watch?v=J9dvPQuHz-I',
-    extraArgs: [],
+    extraArgs: ['--download-sections', '*00:00:00-00:00:30'],
   },
 ];
 

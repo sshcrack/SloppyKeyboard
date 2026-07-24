@@ -94,4 +94,4 @@ out/
 # Native build artifacts
 native/*.exe
 native/*.obj
-assets/shorts/*.mp4
+assets/shorts/source/
