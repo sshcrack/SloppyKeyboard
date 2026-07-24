@@ -1,7 +1,7 @@
 {
   "name": "sloppy-keyboard",
   "productName": "Sloppy Keyboard",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A Galton board that types whichever letter the ball finds.",
   "main": ".webpack/main",
   "private": true,
