@@ -26,6 +26,7 @@ namespace SloppyKeyboardGoose
 
         public override GooseTaskData GetNewTaskData(GooseEntity goose)
         {
+            ModEntryPoint.WriteDiagnostic("Ball placement task initialized.");
             return new PlaceData { Started = Time.time };
         }
 
@@ -49,7 +50,7 @@ namespace SloppyKeyboardGoose
                 return;
             }
             var data = (PlaceData)goose.currentTaskData;
-            if (Time.time - data.Started > 10f)
+            if (Time.time - data.Started > 25f)
             {
                 goose.extendingNeck = false;
                 ModEntryPoint.CancelPlacement();

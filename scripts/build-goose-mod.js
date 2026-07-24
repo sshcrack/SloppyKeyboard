@@ -22,5 +22,6 @@ const result = spawnSync(compiler, [
   join(root, 'goose-mod', 'ModEntryPoint.cs'),
   join(root, 'goose-mod', 'SloppyBallHuntTask.cs'),
   join(root, 'goose-mod', 'SloppyBallPlaceTask.cs'),
+  join(root, 'goose-mod', 'DeferredTaskGate.cs'),
 ], { stdio: 'inherit', windowsHide: true });
 process.exit(result.status ?? 1);

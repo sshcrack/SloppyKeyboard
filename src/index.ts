@@ -2,6 +2,7 @@ import {
   app,
   BrowserWindow,
   ipcMain,
+  powerMonitor,
   screen,
 } from 'electron';
 import { join } from 'path';
@@ -174,6 +175,8 @@ const runMinigame = async (id: unknown): Promise<MinigameResult> => {
 
 app.whenReady().then(() => {
   gooseBridge.start();
+  powerMonitor.on('suspend', () => gooseBridge.setSuspended(true));
+  powerMonitor.on('resume', () => gooseBridge.setSuspended(false));
   ipcMain.handle(IPC_TYPE_CHARACTER, (_event, character: string) =>
     keyboardBlockerEnabled
       ? typeWithHookTemporarilyDisabled(() => typeCharacter(character))

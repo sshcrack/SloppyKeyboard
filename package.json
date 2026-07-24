@@ -13,6 +13,7 @@
     "publish": "electron-forge publish",
     "build:native": "node scripts/build-native.js",
     "build:goose-mod": "node scripts/build-goose-mod.js",
+    "test:goose-mod": "node scripts/test-goose-mod.js",
     "postinstall": "node scripts/build-native.js && node scripts/download-shorts-assets.js",
     "lint": "eslint --ext .ts,.tsx .",
     "test": "vitest run",

@@ -98,4 +98,5 @@ assets/shorts/source/
 goose-mod/lib/
 goose-mod/bin/
 goose-mod/obj/
+goose-mod/test-bin/
 .dotnet/

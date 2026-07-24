@@ -25,7 +25,8 @@ namespace SloppyKeyboardGoose
         static Thread pipeThread;
         static NamedPipeClientStream pipe;
         static StreamWriter writer;
-        static bool huntQueued;
+        static readonly DeferredTaskGate TaskGate = new DeferredTaskGate(1500);
+        static bool taskIdsLogged;
         static long lastSnapshot;
         internal static float SlotX;
         internal static float SlotY;
@@ -35,7 +36,6 @@ namespace SloppyKeyboardGoose
         static string pendingSpawnId;
         static float pendingSpawnX;
         static bool placementRequested;
-        static bool placementQueued;
         internal static float PlacementX;
         internal static float PlacementY;
         static string carriedBallId;
@@ -44,6 +44,8 @@ namespace SloppyKeyboardGoose
         static float carryY;
         static float carryVelocityX;
         static float carryVelocityY;
+        static volatile bool suspended;
+        static bool suspensionHandled;
 
         void IMod.Init()
         {
@@ -91,6 +93,11 @@ namespace SloppyKeyboardGoose
 
         static void ReadBalls(string json)
         {
+            if (json.Contains("\"type\":\"power\"") && json.Contains("\"protocolVersion\":1"))
+            {
+                suspended = json.Contains("\"suspended\":true");
+                return;
+            }
             if (!json.Contains("\"type\":\"balls\"") || !json.Contains("\"protocolVersion\":1")) return;
             var found = new Dictionary<string, BallTarget>();
             var slot = Regex.Match(json, "\"mysterySlot\":\\{\"x\":(?<x>-?[0-9.]+),\"y\":(?<y>-?[0-9.]+),\"width\":(?<w>[0-9.]+),\"height\":(?<h>[0-9.]+)");
@@ -136,12 +143,35 @@ namespace SloppyKeyboardGoose
         {
             if (goose == null) return;
             var now = DateTime.UtcNow.Ticks / TimeSpan.TicksPerMillisecond;
+            if (suspended)
+            {
+                if (!suspensionHandled)
+                {
+                    suspensionHandled = true;
+                    TaskGate.Cancel();
+                    placementRequested = false;
+                    if (carriedBallId != null) ReleaseCarry(goose);
+                    var suspendedHuntTask = API.TaskDatabase.getTaskIndexByID(SloppyBallHuntTask.TaskId);
+                    var suspendedPlacementTask = API.TaskDatabase.getTaskIndexByID(SloppyBallPlaceTask.TaskId);
+                    if (goose.currentTask == suspendedHuntTask
+                        || goose.currentTask == suspendedPlacementTask)
+                        API.Goose.setTaskRoaming(goose);
+                    WriteDiagnostic("Custom behavior suspended for system sleep.");
+                }
+                return;
+            }
+            if (suspensionHandled)
+            {
+                suspensionHandled = false;
+                nextSpawnAt = now + 10000;
+                lastSnapshot = now;
+                WriteDiagnostic("Custom behavior resumed after system sleep.");
+            }
             if (SlotX != 0 && PlacementY != 0 && now >= nextSpawnAt
                 && !placementRequested && pendingSpawnId == null)
             {
                 placementRequested = true;
                 PlacementX = SlotX + (float)(Random.NextDouble() - 0.5) * slotWidth * 0.24f;
-                nextSpawnAt = now + Random.Next(7000, 14001);
             }
             if (now - lastSnapshot >= 33)
             {
@@ -157,41 +187,50 @@ namespace SloppyKeyboardGoose
             }
             var huntTask = API.TaskDatabase.getTaskIndexByID(SloppyBallHuntTask.TaskId);
             var placementTask = API.TaskDatabase.getTaskIndexByID(SloppyBallPlaceTask.TaskId);
+            if (!taskIdsLogged)
+            {
+                taskIdsLogged = true;
+                WriteDiagnostic(String.Format(CultureInfo.InvariantCulture,
+                    "Custom task IDs resolved: hunt={0}, placement={1}.", huntTask, placementTask));
+            }
             if (goose.currentTask == placementTask)
             {
-                placementQueued = false;
+                TaskGate.Cancel();
                 return;
-            }
-            if (placementRequested && !placementQueued)
-            {
-                if (goose.taskIndexQueue == null)
-                {
-                    WriteDiagnostic("Goose task queue was null; ball placement was not queued.");
-                    return;
-                }
-                goose.taskIndexQueue.Add(placementTask);
-                placementQueued = true;
             }
             if (goose.currentTask == huntTask)
             {
-                huntQueued = false;
+                TaskGate.Cancel();
                 var activeTarget = SloppyBallHuntTask.Target;
                 if (activeTarget != null && IsLive(activeTarget.Id))
                     lock (Sync) ClaimedBalls.Add(activeTarget.Id);
                 return;
             }
-            // Keep the selected target fresh while Goose finishes its current
-            // built-in activity, and put our task into Goose's real task queue.
-            SloppyBallHuntTask.Target = nearest;
-            if (nearest != null && !huntQueued)
+
+            var desiredTask = -1;
+            if (placementRequested && placementTask >= 0)
+                desiredTask = placementTask;
+            else if (nearest != null && huntTask >= 0)
             {
-                if (goose.taskIndexQueue == null)
-                {
-                    WriteDiagnostic("Goose task queue was null; hunt was not queued.");
-                    return;
-                }
-                goose.taskIndexQueue.Add(huntTask);
-                huntQueued = true;
+                desiredTask = huntTask;
+                // Keep the target fresh while Goose finishes its current task.
+                SloppyBallHuntTask.Target = nearest;
+            }
+
+            if (desiredTask < 0)
+            {
+                TaskGate.Cancel();
+                return;
+            }
+            TaskGate.Request(desiredTask, goose.currentTask, now);
+            if (TaskGate.ShouldStart(goose.currentTask, now, HasOpenGooseWindow(now)))
+            {
+                var task = TaskGate.Consume();
+                var taskId = task == placementTask
+                    ? SloppyBallPlaceTask.TaskId
+                    : SloppyBallHuntTask.TaskId;
+                WriteDiagnostic("Starting deferred custom task: " + taskId + ".");
+                API.Goose.setCurrentTaskByID(goose, taskId, false);
             }
         }
 
@@ -223,12 +262,21 @@ namespace SloppyKeyboardGoose
             pendingSpawnId = now.ToString(CultureInfo.InvariantCulture);
             pendingSpawnX = PlacementX;
             placementRequested = false;
+            nextSpawnAt = now + Random.Next(7000, 14001);
+            WriteDiagnostic("Goose emitted placed ball " + pendingSpawnId + ".");
         }
 
         internal static void CancelPlacement()
         {
             placementRequested = false;
-            placementQueued = false;
+            TaskGate.Cancel();
+            nextSpawnAt = DateTime.UtcNow.Ticks / TimeSpan.TicksPerMillisecond
+                + Random.Next(7000, 14001);
+        }
+
+        static bool HasOpenGooseWindow(long now)
+        {
+            return Windows.Values.Any(sample => now - sample.At <= 150);
         }
 
         static float DistanceSquared(float ax, float ay, float bx, float by)

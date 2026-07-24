@@ -22,6 +22,7 @@ namespace SloppyKeyboardGoose
         }
         public override GooseTaskData GetNewTaskData(GooseEntity goose)
         {
+            ModEntryPoint.WriteDiagnostic("Ball carry task initialized.");
             return new HuntData { Started = Time.time };
         }
         public override void RunTask(GooseEntity goose)

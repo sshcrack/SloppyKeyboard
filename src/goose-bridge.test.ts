@@ -44,5 +44,11 @@ describe('GooseBridge multiple instances', () => {
     ]);
     expect(first.destroyed).toBe(false);
     expect(second.destroyed).toBe(false);
+    let powerMessage = '';
+    first.on('data', (chunk: Buffer) => { powerMessage += chunk.toString(); });
+    bridge.setSuspended(true);
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    expect(powerMessage).toContain('"type":"power"');
+    expect(powerMessage).toContain('"suspended":true');
   });
 });

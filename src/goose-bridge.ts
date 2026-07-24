@@ -22,6 +22,7 @@ export class GooseBridge {
   private server: Server | null = null;
   private readonly sessions = new Map<Socket, GooseSession>();
   private nextSessionId = 1;
+  private suspended = false;
 
   constructor(
     private readonly publish: (state: GooseState) => void,
@@ -67,6 +68,18 @@ export class GooseBridge {
     });
   }
 
+  setSuspended(suspended: boolean): void {
+    this.suspended = suspended;
+    const message = `${JSON.stringify({
+      type: 'power',
+      protocolVersion: GOOSE_PROTOCOL_VERSION,
+      suspended,
+    })}\n`;
+    for (const session of this.sessions.values()) {
+      if (session.socket.writable) session.socket.write(message);
+    }
+  }
+
   stop(): void {
     for (const session of this.sessions.values()) {
       if (session.staleTimer) clearTimeout(session.staleTimer);
@@ -95,6 +108,11 @@ export class GooseBridge {
       type: 'hello',
       protocolVersion: GOOSE_PROTOCOL_VERSION,
       sessionId: session.id,
+    })}\n`);
+    socket.write(`${JSON.stringify({
+      type: 'power',
+      protocolVersion: GOOSE_PROTOCOL_VERSION,
+      suspended: this.suspended,
     })}\n`);
   }
 
