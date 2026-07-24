@@ -11,9 +11,10 @@ import {
 describe('minigame draw', () => {
   it('selects registered games with equal-sized random ranges', () => {
     expect(drawMinigame(() => 0).winner).toEqual(MINIGAMES[0]);
-    expect(drawMinigame(() => 0.26).winner).toEqual(MINIGAMES[1]);
-    expect(drawMinigame(() => 0.51).winner).toEqual(MINIGAMES[2]);
-    expect(drawMinigame(() => 0.99).winner).toEqual(MINIGAMES[3]);
+    expect(drawMinigame(() => 0.21).winner).toEqual(MINIGAMES[1]);
+    expect(drawMinigame(() => 0.41).winner).toEqual(MINIGAMES[2]);
+    expect(drawMinigame(() => 0.61).winner).toEqual(MINIGAMES[3]);
+    expect(drawMinigame(() => 0.99).winner).toEqual(MINIGAMES[4]);
   });
 
   it('validates only registry IDs', () => {

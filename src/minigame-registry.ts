@@ -1,4 +1,4 @@
-import { execFile, execFileSync, spawn } from 'child_process';
+import { execFileSync, spawn } from 'child_process';
 import {
   existsSync,
   readFileSync,
@@ -9,15 +9,19 @@ import { basename, dirname, join } from 'path';
 import {
   app,
   BrowserWindow,
+  ipcMain,
   screen,
   session,
 } from 'electron';
+import { mouse, Point } from '@nut-tree-fork/nut-js';
 import {
   IPC_GOOSE_SETUP_PROGRESS,
   type GooseSetupProgress,
   type MinigameDescriptor,
   type MinigameId,
   type MinigameResult,
+  IPC_CUP_PICK,
+  type DesktopEffect,
 } from './contracts';
 import {
   MINIGAMES,
@@ -34,6 +38,8 @@ declare const GOOSE_SETUP_PRELOAD_WEBPACK_ENTRY: string;
 
 export interface MinigameContext {
   mainWindow: BrowserWindow;
+  desktopEffect: (effect: DesktopEffect) => void;
+  cupPreload: string;
 }
 
 interface MinigameHandler {
@@ -429,8 +435,54 @@ const runGoose = async (): Promise<MinigameResult> => {
   }
 };
 
-const shutDownLaptop = (): void => {
-  execFile('shutdown.exe', ['/s', '/t', '0'], () => undefined);
+const wait = (milliseconds: number): Promise<void> => new Promise((resolve) => {
+  setTimeout(resolve, milliseconds);
+});
+
+const cupDocument = (): string => `<!doctype html><html><head><meta charset="utf-8"><style>
+*{box-sizing:border-box}body{margin:0;background:#008080;font-family:"MS Sans Serif",Tahoma,sans-serif;display:grid;place-items:center;height:100vh}.box{width:760px;background:#c0c0c0;border:3px solid;border-color:#fff #000 #000 #fff;padding:8px;box-shadow:9px 9px #004040}.title{background:#000080;color:#fff;font-weight:bold;padding:7px}.hint{text-align:center;font-weight:bold}.cups{display:flex;justify-content:center;gap:18px;padding:25px 10px}.cup{width:110px;height:122px;border:0;background:transparent;cursor:pointer;position:relative}.cup:before{content:"";position:absolute;left:8px;top:8px;width:90px;height:96px;border-radius:8px 8px 45px 45px;background:linear-gradient(90deg,#75400c,#e8ac42,#75400c);border:4px solid #2b1602;box-shadow:inset 7px 0 #f5ce74,inset -7px 0 #4a2505}.cup:after{content:"?";position:absolute;inset:31px 0 auto;color:#fff;font:bold 37px serif;text-shadow:2px 2px #000}.cup:hover:before{transform:translateY(-7px)}small{display:block;text-align:center}</style></head><body><div class="box"><div class="title">FIVE-CUP SHUFFLE.EXE</div><p class="hint" id="hint">MEMORIZE THE CUPS...</p><div class="cups">${Array.from({length:5},(_,i)=>'<button class="cup" data-cup="'+i+'" aria-label="Cup '+(i+1)+'"></button>').join('')}</div><small>Choose a cup before the machine loses patience.</small></div><script>const cups=[...document.querySelectorAll('.cup')], hint=document.querySelector('#hint');let order=[0,1,2,3,4],step=0;const swap=()=>{const a=(step*2+1)%5,b=(step*3+2)%5;[order[a],order[b]]=[order[b],order[a]];cups.forEach((c,i)=>{c.style.transform='translateX('+((order.indexOf(i)-i)*128)+'px)'});step++;if(step<${Math.random() < .1 ? 26 : 12})setTimeout(swap,Math.max(70,500-step*30));else{hint.textContent='PICK A CUP.';cups.forEach(c=>c.style.transform='')}};setTimeout(()=>{hint.textContent='TRACK THEM.';swap()},950);cups.forEach(c=>c.onclick=()=>window.sloppyKeyboard.selectCup(Number(c.dataset.cup)));</script></body></html>`;
+
+const runCupShuffle = ({ mainWindow, desktopEffect, cupPreload }: MinigameContext): Promise<MinigameResult> =>
+  new Promise((resolve) => {
+    const display = screen.getDisplayMatching(mainWindow.getBounds());
+    const window = track(new BrowserWindow({
+      width: 790, height: 280, x: display.workArea.x + Math.max(0, Math.floor((display.workArea.width - 790) / 2)),
+      y: display.workArea.y + Math.max(0, Math.floor((display.workArea.height - 280) / 2)),
+      frame: false, alwaysOnTop: true, resizable: false, title: 'Five-cup shuffle',
+      webPreferences: { preload: cupPreload, contextIsolation: true, nodeIntegration: false },
+    }));
+    let settled = false;
+    const finish = (result: MinigameResult): void => {
+      if (settled) return; settled = true; clearTimeout(timeout);
+      ipcMain.removeListener(IPC_CUP_PICK, pick);
+      if (!window.isDestroyed()) window.close();
+      resolve(result);
+    };
+    const pick = (_event: Electron.IpcMainEvent, rawCup: unknown): void => {
+      const cup = typeof rawCup === 'number' ? rawCup : -1;
+      if (!Number.isInteger(cup) || cup < 0 || cup > 4) return;
+      void runCupAction(cup, desktopEffect).then(() => finish({ status: 'completed', message: 'CUP SHUFFLE COMPLETE' }));
+    };
+    const timeout = setTimeout(() => finish({ status: 'cancelled', message: 'CUP SHUFFLE TIMED OUT SAFELY' }), 20_000);
+    ipcMain.once(IPC_CUP_PICK, pick);
+    window.once('closed', () => finish({ status: 'cancelled', message: 'CUP SHUFFLE CANCELLED' }));
+    void window.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(cupDocument())}`);
+  });
+
+const runCupAction = async (cup: number, effect: (effect: DesktopEffect) => void): Promise<void> => {
+  const position = await mouse.getPosition().catch(() => new Point(0, 0));
+  if (cup === 0) { effect({ kind: 'cursor-goose', x: position.x, y: position.y }); await wait(5_000); return; }
+  if (cup === 1) {
+    for (let step = 0; step < 24; step += 1) {
+      const angle = step * Math.PI / 4; const radius = 8 + step * 2;
+      await mouse.setPosition(new Point(Math.round(position.x + Math.cos(angle) * radius), Math.round(position.y + Math.sin(angle) * radius))).catch((): void => undefined);
+      await wait(80);
+    }
+    await mouse.setPosition(position).catch((): void => undefined); return;
+  }
+  if (cup === 2) { effect({ kind: 'balls', x: position.x, y: position.y, count: 15 }); await wait(2_000); return; }
+  if (cup === 3) { effect({ kind: 'fracture', x: position.x, y: position.y }); await wait(900); return; }
+  effect({ kind: 'cameo', x: position.x, y: position.y }); await wait(700);
 };
 
 const descriptors = new Map(MINIGAMES.map((game) => [game.id, game]));
@@ -456,10 +508,11 @@ const registry = new Map<MinigameId, MinigameHandler>([
     descriptor: descriptor('bluescreen'),
     run: async ({ mainWindow }) => {
       const display = screen.getDisplayMatching(mainWindow.getBounds());
-      await openFakeBluescreen(track, shutDownLaptop, display.bounds);
+      await openFakeBluescreen(track, () => undefined, display.bounds);
       return { status: 'completed', message: 'RECOVERY COMPLETE' };
     },
   }],
+  ['cup-shuffle', { descriptor: descriptor('cup-shuffle'), run: runCupShuffle }],
 ]);
 
 export const runRegisteredMinigame = async (

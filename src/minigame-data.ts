@@ -29,6 +29,12 @@ export const MINIGAMES: readonly MinigameDescriptor[] = [
     description: 'Solve three sums to recover.',
     accent: '#0000aa',
   },
+  {
+    id: 'cup-shuffle',
+    label: 'Five-cup shuffle',
+    description: 'Track the cups. The cups are tracking you.',
+    accent: '#c08020',
+  },
 ];
 
 export const isMinigameId = (value: unknown): value is MinigameId =>

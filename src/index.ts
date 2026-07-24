@@ -21,6 +21,8 @@ import {
   BallSnapshot,
   ScreenRect,
   MinigameResult,
+  DesktopEffect,
+  IPC_DESKTOP_EFFECT,
   SPECIAL_KEYS,
   SpecialKey,
 } from './contracts';
@@ -38,6 +40,7 @@ import {
   uninstallHook,
 } from './keyboard-hook-service';
 import { GooseBridge } from './goose-bridge';
+import { SurpriseScheduler, omenDelayMs } from './surprise-scheduler';
 
 declare const MAIN_WINDOW_WEBPACK_ENTRY: string;
 declare const MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY: string;
@@ -56,6 +59,9 @@ const gooseBridge = new GooseBridge((state) => {
   }
 });
 let activeMinigame = false;
+const surprises = new SurpriseScheduler();
+let omenUsed = false;
+let omenTimer: NodeJS.Timeout | undefined;
 const debugMinigames = app.commandLine.hasSwitch('debug-minigames');
 const keyboardBlockerEnabled = !app.commandLine.hasSwitch('disable-keyboard-blocker');
 const appIconPath = join(
@@ -72,6 +78,7 @@ const shutDown = (): void => {
   closeMinigameWindows();
   closeDesktopGoose();
   uninstallHook();
+  if (omenTimer) clearTimeout(omenTimer);
 };
 
 if (require('electron-squirrel-startup')) {
@@ -156,6 +163,30 @@ const createOverlay = (): BrowserWindow => {
   return overlayWindow;
 };
 
+const desktopEffect = (effect: DesktopEffect): void => {
+  const overlay = createOverlay();
+  const send = (): void => overlay.webContents.send(IPC_DESKTOP_EFFECT, effect);
+  if (overlay.webContents.isLoading()) overlay.webContents.once('did-finish-load', send);
+  else send();
+};
+
+const scheduleOmen = (): void => {
+  if (omenUsed || omenTimer) return;
+  omenTimer = setTimeout(() => {
+    omenTimer = undefined;
+    if (activeMinigame || surprises.busy) { scheduleOmen(); return; }
+    omenUsed = true;
+    desktopEffect({ kind: 'omen-title' });
+    setTimeout(() => {
+      const point = screen.getCursorScreenPoint();
+      const display = screen.getDisplayNearestPoint(point);
+      const leftDistance = point.x - display.workArea.x;
+      const rightDistance = display.workArea.x + display.workArea.width - point.x;
+      desktopEffect({ kind: 'eyes', x: point.x, y: point.y, side: leftDistance <= rightDistance ? 'left' : 'right' });
+    }, 1600);
+  }, omenDelayMs());
+};
+
 const runMinigame = async (id: unknown): Promise<MinigameResult> => {
   if (!isMinigameId(id)) {
     return { status: 'failed', message: 'UNKNOWN MINIGAME' };
@@ -164,19 +195,25 @@ const runMinigame = async (id: unknown): Promise<MinigameResult> => {
     return { status: 'failed', message: 'A MINIGAME IS ALREADY ACTIVE' };
   }
   activeMinigame = true;
+  surprises.begin('minigame');
   try {
-    return await runRegisteredMinigame(id, { mainWindow });
+    const result = await runRegisteredMinigame(id, {
+      mainWindow, desktopEffect, cupPreload: MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY,
+    });
+    if (result.status === 'completed' && !omenUsed && Math.random() < 0.05) scheduleOmen();
+    return result;
   } catch {
     return { status: 'failed', message: 'MINIGAME FAILED SAFELY' };
   } finally {
     activeMinigame = false;
+    surprises.end('minigame');
   }
 };
 
 app.whenReady().then(() => {
   gooseBridge.start();
-  powerMonitor.on('suspend', () => gooseBridge.setSuspended(true));
-  powerMonitor.on('resume', () => gooseBridge.setSuspended(false));
+  powerMonitor.on('suspend', () => { gooseBridge.setSuspended(true); surprises.setAwake(false); });
+  powerMonitor.on('resume', () => { gooseBridge.setSuspended(false); surprises.setAwake(true); });
   ipcMain.handle(IPC_TYPE_CHARACTER, (_event, character: string) =>
     keyboardBlockerEnabled
       ? typeWithHookTemporarilyDisabled(() => typeCharacter(character))

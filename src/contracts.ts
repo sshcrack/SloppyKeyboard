@@ -10,6 +10,8 @@ export const IPC_GOOSE_STATE = 'sloppy-keyboard:goose-state';
 export const IPC_GOOSE_BALLS = 'sloppy-keyboard:goose-balls';
 export const IPC_ESCAPE_BALL = 'sloppy-keyboard:escape-ball';
 export const IPC_GOOSE_SETUP_PROGRESS = 'sloppy-keyboard:goose-setup-progress';
+export const IPC_CUP_PICK = 'sloppy-keyboard:cup-pick';
+export const IPC_DESKTOP_EFFECT = 'sloppy-keyboard:desktop-effect';
 
 export const SPECIAL_KEYS = ['backspace', 'enter'] as const;
 export type SpecialKey = typeof SPECIAL_KEYS[number];
@@ -19,6 +21,7 @@ export const MINIGAME_IDS = [
   'youtube-shorts',
   'desktop-goose',
   'bluescreen',
+  'cup-shuffle',
 ] as const;
 
 export type MinigameId = typeof MINIGAME_IDS[number];
@@ -39,6 +42,13 @@ export interface MinigameDraw {
   winner: MinigameDescriptor;
   reel: MinigameDescriptor[];
 }
+export type DesktopEffect =
+  | { kind: 'balls'; x: number; y: number; count?: number }
+  | { kind: 'fracture'; x: number; y: number }
+  | { kind: 'cameo'; x: number; y: number }
+  | { kind: 'cursor-goose'; x: number; y: number }
+  | { kind: 'omen-title' }
+  | { kind: 'eyes'; x: number; y: number; side: 'left' | 'right' };
 
 export interface TypeResult {
   ok: boolean;
@@ -97,7 +107,9 @@ export interface SloppyKeyboardApi {
   minimizeWindow: () => void;
   sendGooseBalls: (balls: BallSnapshot[], boardBounds: ScreenRect, mysterySlot: ScreenRect | null) => void;
   escapeBall: (ball: BallSnapshot) => void;
+  selectCup: (cup: number) => void;
   onGooseState: (listener: (state: GooseState) => void) => () => void;
   onEscapedBall: (listener: (ball: EscapedBall) => void) => () => void;
+  onDesktopEffect: (listener: (effect: DesktopEffect) => void) => () => void;
   onGooseSetupProgress: (listener: (progress: GooseSetupProgress) => void) => () => void;
 }

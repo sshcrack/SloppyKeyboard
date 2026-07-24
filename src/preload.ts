@@ -11,6 +11,8 @@ import {
   IPC_GOOSE_STATE,
   IPC_GOOSE_BALLS,
   IPC_ESCAPE_BALL,
+  IPC_CUP_PICK,
+  IPC_DESKTOP_EFFECT,
   IPC_GOOSE_SETUP_PROGRESS,
   SloppyKeyboardApi,
 } from './contracts';
@@ -28,6 +30,7 @@ const api: SloppyKeyboardApi = {
   sendGooseBalls: (balls, boardBounds, mysterySlot) =>
     ipcRenderer.send(IPC_GOOSE_BALLS, { balls, boardBounds, mysterySlot }),
   escapeBall: (ball) => ipcRenderer.send(IPC_ESCAPE_BALL, ball),
+  selectCup: (cup) => ipcRenderer.send(IPC_CUP_PICK, cup),
   onGooseState: (listener) => {
     const handler = (_event: Electron.IpcRendererEvent, state: Parameters<typeof listener>[0]): void => listener(state);
     ipcRenderer.on(IPC_GOOSE_STATE, handler);
@@ -37,6 +40,11 @@ const api: SloppyKeyboardApi = {
     const handler = (_event: Electron.IpcRendererEvent, ball: Parameters<typeof listener>[0]): void => listener(ball);
     ipcRenderer.on(IPC_ESCAPE_BALL, handler);
     return () => ipcRenderer.removeListener(IPC_ESCAPE_BALL, handler);
+  },
+  onDesktopEffect: (listener) => {
+    const handler = (_event: Electron.IpcRendererEvent, effect: Parameters<typeof listener>[0]): void => listener(effect);
+    ipcRenderer.on(IPC_DESKTOP_EFFECT, handler);
+    return () => ipcRenderer.removeListener(IPC_DESKTOP_EFFECT, handler);
   },
   onGooseSetupProgress: (listener) => {
     const handler = (_event: Electron.IpcRendererEvent, progress: Parameters<typeof listener>[0]): void => listener(progress);
