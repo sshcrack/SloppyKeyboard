@@ -34,6 +34,25 @@ Download now before someone puts this idea behind a paywall.
 
 Leave a browser, Notepad, a search box, or another innocent text field ready. Sloppy Keyboard stays out of the way while the ball makes the important editorial decisions.
 
+## Asset disclaimer
+
+Some surprise effects use assets extracted from a locally installed copy of
+Minecraft: Java Edition, including the Steve skin, block textures, destruction
+stages, and short sound effects. Minecraft, Steve, and those game assets are
+owned by Mojang Studios/Microsoft. Sloppy Keyboard is an independent fan
+project and is not affiliated with, endorsed by, or sponsored by Mojang or
+Microsoft.
+
+The construction-worker Clippy and porcelain jumpscare images were generated
+with OpenAI image-generation tools for this project. Clippy is a Microsoft
+character and trademark; the generated image is an unofficial transformative
+depiction and is not an original Microsoft asset. Other generated imagery is
+fictional and does not depict a real person.
+
+These assets are included only for the app's temporary visual effects. Do not
+reuse or redistribute third-party game assets separately from the project
+without checking the applicable owner terms.
+
 Need more chaos? Drop up to **25 balls at once**. Need Backspace or Enter? Those are premium keystrokes and may require a small display of skill.
 
 No spoilers about the `?` slot. Just know that the computer has been encouraged to improvise.

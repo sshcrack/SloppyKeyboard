@@ -90,6 +90,9 @@ if (require('electron-squirrel-startup')) {
   app.quit();
 }
 
+// Surprise sounds are always capped inside the renderer and never modify the
+// user's system volume. Allow timer-driven effects to play those local clips.
+app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
 app.setAppUserModelId('com.squirrel.SloppyKeyboard.SloppyKeyboard');
 
 const createWindow = (): void => {
@@ -273,10 +276,16 @@ app.whenReady().then(() => {
     const point = screen.getCursorScreenPoint();
     const surprise = raw as DebugSurprise;
     if (surprise === 'fallen-balls') desktopEffect({ kind: 'balls', x: point.x, y: point.y, count: 15 });
-    else if (surprise === 'fracture') desktopEffect({ kind: 'fracture', x: point.x, y: point.y });
+    else if (surprise === 'fracture') {
+      const area = screen.getDisplayNearestPoint(point).bounds;
+      desktopEffect({ kind: 'fracture', x: point.x, y: point.y, area });
+    }
     else if (surprise === 'cameo') desktopEffect({ kind: 'cameo', x: point.x, y: point.y });
     else if (surprise === 'pixel-goose') desktopEffect({ kind: 'cursor-goose', x: point.x, y: point.y });
-    else if (surprise === 'steve-dig') desktopEffect({ kind: 'steve-dig', x: point.x, y: point.y });
+    else if (surprise === 'steve-dig') {
+      const area = screen.getDisplayNearestPoint(point).bounds;
+      desktopEffect({ kind: 'steve-dig', x: point.x, y: point.y, area });
+    }
     else if (surprise === 'omen-title') desktopEffect({ kind: 'omen-title' });
     else {
       const display = screen.getDisplayNearestPoint(point);
@@ -301,8 +310,9 @@ app.whenReady().then(() => {
       kind: 'steve-dig',
       x: display.workArea.x + 180 + Math.random() * Math.max(1, display.workArea.width - 360),
       y: display.workArea.y + 180 + Math.random() * Math.max(1, display.workArea.height - 360),
+      area: display.bounds,
     });
-    setTimeout(() => surprises.end('steve-dig'), 5_200);
+    setTimeout(() => surprises.end('steve-dig'), 13_600);
   }, 1000);
   mainWindow.once('ready-to-show', () => {
     void ensureDesktopGoosePath(mainWindow as BrowserWindow);

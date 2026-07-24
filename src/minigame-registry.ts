@@ -480,7 +480,12 @@ const runCupAction = async (cup: number, effect: (effect: DesktopEffect) => void
     await mouse.setPosition(position).catch((): void => undefined); return;
   }
   if (cup === 2) { effect({ kind: 'balls', x: position.x, y: position.y, count: 15 }); await wait(2_000); return; }
-  if (cup === 3) { effect({ kind: 'fracture', x: position.x, y: position.y }); await wait(4_200); return; }
+  if (cup === 3) {
+    const area = screen.getDisplayNearestPoint(position).bounds;
+    effect({ kind: 'fracture', x: position.x, y: position.y, area });
+    await wait(8_500);
+    return;
+  }
   effect({ kind: 'cameo', x: position.x, y: position.y }); await wait(1_100);
 };
 

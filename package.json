@@ -36,6 +36,7 @@
     "@electron-forge/plugin-webpack": "^7.11.2",
     "@electron/fuses": "^1.8.0",
     "@types/matter-js": "^0.20.2",
+    "@types/three": "^0.179.0",
     "@typescript-eslint/eslint-plugin": "^5.62.0",
     "@typescript-eslint/parser": "^5.62.0",
     "@vercel/webpack-asset-relocator-loader": "^1.7.3",
@@ -53,6 +54,7 @@
   "dependencies": {
     "@nut-tree-fork/nut-js": "^4.2.6",
     "electron-squirrel-startup": "^1.0.1",
-    "matter-js": "^0.20.0"
+    "matter-js": "^0.20.0",
+    "three": "^0.179.1"
   }
 }
