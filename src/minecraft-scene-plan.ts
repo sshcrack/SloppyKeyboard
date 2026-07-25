@@ -13,6 +13,17 @@ export interface MinecraftScenePlan {
   cave: VoxelCell[];
 }
 
+const STEVE_UNSCALED = { minY: -.95, maxY: 3.05, width: 2.06 };
+export const STEVE_MODEL_SCALE = .45;
+export const STEVE_BASE_Y = 1 - STEVE_UNSCALED.minY * STEVE_MODEL_SCALE;
+export const STEVE_DOORWAY_FIT = {
+  footY: STEVE_BASE_Y + STEVE_UNSCALED.minY * STEVE_MODEL_SCALE,
+  width: STEVE_UNSCALED.width * STEVE_MODEL_SCALE,
+  height: (STEVE_UNSCALED.maxY - STEVE_UNSCALED.minY) * STEVE_MODEL_SCALE,
+};
+export const walkingYawForDirection = (direction: 1 | -1): number =>
+  direction * Math.PI / 2;
+
 export const localizeImpact = (
   area: ScreenRect,
   point: { x: number; y: number },
@@ -53,6 +64,9 @@ export const createMinecraftScenePlan = ({
       add(targetColumn - 2, y, z);
       add(targetColumn + 2, y, z);
     }
+  }
+  for (let x = targetColumn - 1; x <= targetColumn + 1; x += 1) {
+    for (let y = 1; y <= 3; y += 1) add(x, y, -5);
   }
   return {
     walkway,

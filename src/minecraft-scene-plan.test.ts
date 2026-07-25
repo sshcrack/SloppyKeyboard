@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { createMinecraftScenePlan, localizeImpact } from './minecraft-scene-plan';
+import {
+  createMinecraftScenePlan,
+  localizeImpact,
+  STEVE_DOORWAY_FIT,
+  walkingYawForDirection,
+} from './minecraft-scene-plan';
 
 describe('Minecraft surprise scene plan', () => {
   it('builds a left-to-right voxel walkway and exactly one two-block doorway', () => {
@@ -25,6 +30,17 @@ describe('Minecraft surprise scene plan', () => {
     expect(cells.every(({ x, y, z }) =>
       Number.isInteger(x) && Number.isInteger(y) && Number.isInteger(z))).toBe(true);
     expect(plan.cave.some(({ z }) => z <= -4)).toBe(true);
+  });
+
+  it('keeps Steve on the block surface and inside a one-by-two doorway', () => {
+    expect(STEVE_DOORWAY_FIT.footY).toBeCloseTo(1, 5);
+    expect(STEVE_DOORWAY_FIT.width).toBeLessThanOrEqual(.94);
+    expect(STEVE_DOORWAY_FIT.height).toBeLessThanOrEqual(1.9);
+  });
+
+  it('faces Steve along his direction of travel', () => {
+    expect(walkingYawForDirection(1)).toBeCloseTo(Math.PI / 2);
+    expect(walkingYawForDirection(-1)).toBeCloseTo(-Math.PI / 2);
   });
 });
 

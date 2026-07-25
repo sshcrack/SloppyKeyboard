@@ -1,5 +1,11 @@
 import * as THREE from 'three';
-import { createMinecraftScenePlan, type VoxelCell } from './minecraft-scene-plan';
+import {
+  createMinecraftScenePlan,
+  STEVE_BASE_Y,
+  STEVE_MODEL_SCALE,
+  walkingYawForDirection,
+  type VoxelCell,
+} from './minecraft-scene-plan';
 
 // All textures and sounds below are extracted from the user's locally installed
 // Minecraft jar. They are bundled locally; the surprise has no runtime web dependency.
@@ -11,6 +17,10 @@ const grassTopUrl = require('../assets/minecraft/grass_block_top.png') as string
 const grassSideUrl = require('../assets/minecraft/grass_block_side.png') as string;
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const stoneUrl = require('../assets/minecraft/stone.png') as string;
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const coalOreUrl = require('../assets/minecraft/coal_ore.png') as string;
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const ironOreUrl = require('../assets/minecraft/iron_ore.png') as string;
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const torchUrl = require('../assets/minecraft/torch.png') as string;
 // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -99,7 +109,7 @@ const createSteve = (): {
   pickaxe.position.set(-.42, -.9, .1);
   rightArm.add(pickaxe);
   group.add(head, body, rightArm, leftArm, rightLeg, leftLeg);
-  group.scale.setScalar(.72);
+  group.scale.setScalar(STEVE_MODEL_SCALE);
   return { group, rightArm, leftArm, rightLeg, leftLeg, pickaxe };
 };
 
@@ -191,20 +201,22 @@ export const runMinecraftDig = (
   const grassTop = texture(grassTopUrl);
   const grassSide = texture(grassSideUrl);
   const stone = texture(stoneUrl);
+  const coalOre = texture(coalOreUrl);
+  const ironOre = texture(ironOreUrl);
   const damage = destroyUrls.map(texture);
   const targetColumn = Math.round(THREE.MathUtils.lerp(-1, 3, impactX / Math.max(width, 1)));
   const plan = createMinecraftScenePlan({ targetColumn, leftColumn: -8 });
   const root = new THREE.Group();
   scene.add(root);
 
-  // Anchor the top of the grass blocks to the real taskbar edge. The binary
-  // projection solve keeps this correct for different resolutions/aspects.
+  // The blocks stand on the taskbar: their bottom plane, not their grass top,
+  // is projected to the taskbar's upper edge.
   const targetScreenY = THREE.MathUtils.clamp(taskbarTop, height * .64, height - 8);
   let low = -8;
   let high = 5;
   for (let index = 0; index < 28; index += 1) {
     const candidate = (low + high) / 2;
-    const projected = new THREE.Vector3(0, candidate + 1, 0).project(camera);
+    const projected = new THREE.Vector3(0, candidate, 0).project(camera);
     const screenY = (1 - projected.y) * height / 2;
     if (screenY > targetScreenY) low = candidate;
     else high = candidate;
@@ -222,7 +234,16 @@ export const runMinecraftDig = (
   caveGroup.visible = false;
   root.add(caveGroup);
   for (const cell of plan.cave) {
-    caveGroup.add(at(cell, makeCaveBlock(stone, cell.z === -1)));
+    const isBackWall = cell.z === -5
+      && Math.abs(cell.x - targetColumn) <= 1
+      && cell.y >= 1 && cell.y <= 3;
+    const backTexture = (cell.x + cell.y * 3) % 5 === 0
+      ? coalOre
+      : (cell.x - cell.y * 2) % 7 === 0 ? ironOre : stone;
+    caveGroup.add(at(
+      cell,
+      makeCaveBlock(isBackWall ? backTexture : stone, cell.z === -1 || isBackWall),
+    ));
   }
   const darkness = new THREE.Mesh(
     new THREE.PlaneGeometry(.97, 1.97),
@@ -296,7 +317,7 @@ export const runMinecraftDig = (
   });
 
   const steve = createSteve();
-  steve.group.position.set(-8, 1.02, .58);
+  steve.group.position.set(-8, STEVE_BASE_Y, .58);
   root.add(steve.group);
 
   const particles: THREE.Mesh[] = [];
@@ -335,12 +356,12 @@ export const runMinecraftDig = (
       const progress = (elapsed - 3.8) / 3.2;
       steve.group.position.x = THREE.MathUtils.lerp(-8, targetColumn - 1.15, progress);
       const stride = Math.sin(progress * Math.PI * 12);
-      steve.group.position.y = 1.02 + Math.abs(stride) * .045;
+      steve.group.position.y = STEVE_BASE_Y + Math.abs(stride) * .035;
       steve.rightArm.rotation.x = -stride * .7;
       steve.leftArm.rotation.x = stride * .7;
       steve.rightLeg.rotation.x = stride * .65;
       steve.leftLeg.rotation.x = -stride * .65;
-      steve.group.rotation.y = Math.PI / 2;
+      steve.group.rotation.y = walkingYawForDirection(1);
       steve.pickaxe.visible = false;
     }
 
@@ -362,8 +383,8 @@ export const runMinecraftDig = (
         lastDamageStage = stage;
       }
       steve.pickaxe.visible = true;
-      steve.group.position.x = targetColumn - 1.08;
-      steve.group.rotation.y = Math.PI / 2;
+      steve.group.position.x = targetColumn - .72;
+      steve.group.rotation.y = walkingYawForDirection(1);
       steve.rightArm.rotation.x = -1.35 + Math.sin(mining * 18) * .9;
       if (now >= soundAt) {
         playQuiet(stoneSoundUrl, .16);
