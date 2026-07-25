@@ -1,6 +1,7 @@
 import {
   app,
   BrowserWindow,
+  desktopCapturer,
   ipcMain,
   powerMonitor,
   screen,
@@ -166,16 +167,41 @@ const createOverlay = (): BrowserWindow => {
     },
   });
   overlayWindow.setIgnoreMouseEvents(true);
-  overlayWindow.setAlwaysOnTop(true, 'screen-saver');
+  overlayWindow.setAlwaysOnTop(true, 'screen-saver', 1);
+  overlayWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
   void overlayWindow.loadURL(DESKTOP_OVERLAY_WEBPACK_ENTRY);
   return overlayWindow;
 };
 
 const desktopEffect = (effect: DesktopEffect): void => {
   const overlay = createOverlay();
-  const send = (): void => overlay.webContents.send(IPC_DESKTOP_EFFECT, effect);
+  overlay.setAlwaysOnTop(true, 'screen-saver', 1);
+  overlay.moveTop();
+  const send = async (): Promise<void> => {
+    let payload = effect;
+    if (effect.kind === 'fracture' && !effect.snapshot) {
+      const display = screen.getDisplayNearestPoint({ x: effect.x, y: effect.y });
+      try {
+        const sources = await desktopCapturer.getSources({
+          types: ['screen'],
+          thumbnailSize: { width: effect.area.width, height: effect.area.height },
+          fetchWindowIcons: false,
+        });
+        const source = sources.find(({ display_id: id }) => id === String(display.id))
+          ?? sources[0];
+        if (source) payload = { ...effect, snapshot: source.thumbnail.toDataURL() };
+      } catch {
+        // The modeled glass layer still runs if screen capture is unavailable.
+      }
+    }
+    if (!overlay.isDestroyed()) {
+      overlay.setAlwaysOnTop(true, 'screen-saver', 1);
+      overlay.moveTop();
+      overlay.webContents.send(IPC_DESKTOP_EFFECT, payload);
+    }
+  };
   if (overlay.webContents.isLoading()) overlay.webContents.once('did-finish-load', send);
-  else send();
+  else void send();
 };
 
 const scheduleOmen = (): void => {
@@ -283,8 +309,11 @@ app.whenReady().then(() => {
     else if (surprise === 'cameo') desktopEffect({ kind: 'cameo', x: point.x, y: point.y });
     else if (surprise === 'pixel-goose') desktopEffect({ kind: 'cursor-goose', x: point.x, y: point.y });
     else if (surprise === 'steve-dig') {
-      const area = screen.getDisplayNearestPoint(point).bounds;
-      desktopEffect({ kind: 'steve-dig', x: point.x, y: point.y, area });
+      const display = screen.getDisplayNearestPoint(point);
+      desktopEffect({
+        kind: 'steve-dig', x: point.x, y: point.y,
+        area: display.bounds, workArea: display.workArea,
+      });
     }
     else if (surprise === 'omen-title') desktopEffect({ kind: 'omen-title' });
     else {
@@ -311,6 +340,7 @@ app.whenReady().then(() => {
       x: display.workArea.x + 180 + Math.random() * Math.max(1, display.workArea.width - 360),
       y: display.workArea.y + 180 + Math.random() * Math.max(1, display.workArea.height - 360),
       area: display.bounds,
+      workArea: display.workArea,
     });
     setTimeout(() => surprises.end('steve-dig'), 13_600);
   }, 1000);

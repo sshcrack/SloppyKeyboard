@@ -1,5 +1,6 @@
 import { Bodies, Body, Composite, Engine, World } from 'matter-js';
 import type { BallSnapshot, DesktopEffect, GooseState, ScreenRect } from './contracts';
+import { runGlassFracture } from './glass-fracture';
 import { runMinecraftDig } from './minecraft-surprise';
 
 const canvas = document.querySelector<HTMLCanvasElement>('#desktop-balls') as HTMLCanvasElement;
@@ -16,7 +17,7 @@ const eyesAsset = require('../assets/omen/eyes-open-small.png') as string;
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const maskAsset = require('../assets/jumpscares/porcelain-mask-small.png') as string;
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-const clippyAsset = require('../assets/clippy/construction-clippy-small.png') as string;
+const clippyAsset = require('../assets/clippy/construction-clippy-grip-v2.png') as string;
 let last = performance.now();
 
 const local = (x: number, y: number): { x: number; y: number } => ({
@@ -92,105 +93,8 @@ effectStyle.textContent += `
 .steve-dig{position:fixed;inset:0}.mine-hole{position:absolute;left:calc(var(--dig-x) - 96px);top:calc(var(--dig-y) - 72px);width:192px;height:144px;background:#020306;box-shadow:inset 0 0 35px #000,0 0 0 5px #111;clip-path:polygon(0 0,100% 0,100% 100%,0 100%);animation:hole-cycle 5s steps(6,end) forwards}.mine-hole i{position:absolute;width:48px;height:48px;background:linear-gradient(135deg,#777,#333);border:3px solid #111;animation:block-break 2.4s steps(5,end) forwards}.mine-hole i:nth-child(2){left:48px;animation-delay:.12s}.mine-hole i:nth-child(3){left:96px;animation-delay:.24s}.mine-hole i:nth-child(4){left:144px;animation-delay:.36s}.mine-hole i:nth-child(5){top:48px;animation-delay:.48s}.mine-hole i:nth-child(6){left:48px;top:48px;animation-delay:.6s}.mine-hole i:nth-child(7){left:96px;top:48px;animation-delay:.72s}.mine-hole i:nth-child(8){left:144px;top:48px;animation-delay:.84s}.steve{position:absolute;z-index:3;left:calc(var(--dig-x) - 34px);top:calc(var(--dig-y) - 190px);width:68px;height:150px;image-rendering:pixelated;animation:steve-drop 5s steps(12,end) forwards}.steve-head{position:absolute;left:10px;width:48px;height:48px;background:#b97850;border:6px solid #3b241b;box-shadow:inset 0 12px #38251f}.steve-head:before{content:"▪  ▪";position:absolute;top:16px;left:7px;color:#bde9ff;font:bold 17px monospace}.steve-body{position:absolute;left:8px;top:48px;width:52px;height:58px;background:#18a9a9;border:6px solid #075d68}.steve-leg{position:absolute;top:102px;width:25px;height:46px;background:#3347a6;border:5px solid #17225c}.steve-leg.a{left:8px}.steve-leg.b{right:8px}.pickaxe{position:absolute;left:50px;top:48px;width:8px;height:92px;background:#75401d;transform-origin:4px 75px;animation:pick-swing .42s steps(3,end) 7}.pickaxe:before{content:"";position:absolute;left:-29px;top:-6px;width:62px;height:12px;background:#aaa;border:3px solid #222}
 @keyframes omen-chroma{0%,100%{transform:skew(0)}20%{transform:skew(-4deg) translateX(-3px)}24%{transform:skew(5deg) translateX(4px)}62%{filter:blur(0)}64%{filter:blur(2px)}}@keyframes clippy-enter{0%{opacity:0;transform:translate(-180px,-80px) rotate(-20deg)}18%,75%{opacity:1;transform:translate(0)}88%{opacity:1;transform:translate(20px,-8px)}100%{opacity:0;transform:translate(240px,-120px)}}@keyframes hammer-swing{0%,25%{transform:rotate(-62deg)}42%{transform:rotate(36deg)}46%,100%{transform:rotate(18deg)}}@keyframes screen-corrupt{0%,38%{opacity:0}42%{opacity:1;transform:translateX(18px)}48%{transform:translateX(-12px)}60%,86%{opacity:.8;transform:none}100%{opacity:0}}@keyframes jumpscare{0%{opacity:0;transform:scale(.15)}8%{opacity:1;transform:scale(1.18)}18%{transform:scale(.98) translate(7px,-4px)}72%{opacity:1;transform:scale(1.04)}100%{opacity:0;transform:scale(1.4)}}@keyframes jumpscare-static{50%{transform:translate(7px,-3px);filter:hue-rotate(90deg)}}@keyframes pick-swing{50%{transform:rotate(-85deg)}}@keyframes block-break{0%{filter:brightness(1)}20%{background:repeating-linear-gradient(45deg,#777 0 8px,#111 9px 11px)}60%{transform:scale(.85);opacity:1}100%{transform:scale(0);opacity:0}}@keyframes steve-drop{0%{opacity:0;transform:translateX(-220px)}12%,55%{opacity:1;transform:translateX(0)}72%{transform:translateY(15px)}88%{opacity:1;transform:translateY(180px) scale(.7)}100%{opacity:0;transform:translateY(210px) scale(.5)}}@keyframes hole-cycle{0%,12%{transform:scale(0);opacity:0}42%,82%{transform:scale(1);opacity:1}100%{transform:scale(0);opacity:0}}`;
 effectStyle.textContent += `
-.clippy-smash{width:300px;height:300px;left:calc(var(--hit-x) - 150px);top:calc(var(--hit-y) - 280px);background:url('${clippyAsset}') center/contain no-repeat;animation:clippy-real 8.35s ease-in-out forwards;transform-origin:65% 82%}.clippy-smash .clip-body,.clippy-smash .clip-mouth,.clippy-smash .hammer{display:none}.clippy-caption{left:-5px;top:5px}.fracture:after{animation-duration:8.35s}.minecraft-monitor{position:fixed;overflow:hidden}.minecraft-3d{position:absolute;inset:0;width:100%;height:100%;filter:drop-shadow(0 8px 5px #0008)}@keyframes clippy-real{0%{opacity:0;transform:translate(-220px,80px) rotate(-12deg) scale(.72)}12%{opacity:1;transform:translate(0) rotate(-18deg) scale(1)}18%{transform:rotate(15deg) scale(1.08)}22%,72%{opacity:1;transform:rotate(0) scale(1)}76%{transform:rotate(-7deg) translateY(-8px)}82%{transform:rotate(7deg) translateY(3px)}100%{opacity:0;transform:translate(260px,-130px) rotate(22deg) scale(.78)}}`;
+.fracture:after{display:none}.glass-shader{position:absolute;inset:0;width:100%;height:100%}.clippy-smash{width:285px;height:330px;left:calc(var(--hit-x) + 72px);top:calc(var(--hit-y) + 27px);background:url('${clippyAsset}') center/contain no-repeat;animation:clippy-real 8.35s ease-in-out forwards;transform-origin:45% 30%;z-index:4}.clippy-smash .clip-body,.clippy-smash .clip-mouth,.clippy-smash .hammer{display:none}.clippy-caption{left:18px;top:18px}.real-hammer{position:absolute;z-index:5;left:calc(var(--hit-x) + 106px);top:calc(var(--hit-y) - 79px);width:70px;height:240px;transform-origin:35px 220px;animation:hammer-real 8.35s cubic-bezier(.22,.75,.18,1) forwards}.real-hammer .shaft{position:absolute;left:29px;top:17px;width:13px;height:218px;border-radius:5px;background:linear-gradient(90deg,#3b1b08,#9b5b24 45%,#482109);box-shadow:inset 2px 0 #d4914e,2px 3px 4px #0009}.real-hammer .head{position:absolute;left:-10px;top:0;width:91px;height:39px;border-radius:7px;background:linear-gradient(#f3f4f5,#8b9298 45%,#31363b 55%,#aeb4b8);border:2px solid #272b2e;box-shadow:inset 0 3px #fff9,4px 5px 6px #0008}.minecraft-monitor{position:fixed;overflow:hidden}.minecraft-3d{position:absolute;inset:0;width:100%;height:100%;filter:drop-shadow(0 8px 5px #0008)}@keyframes clippy-real{0%{opacity:0;transform:translate(260px,100px) rotate(10deg) scale(.72)}10%{opacity:1;transform:translate(0) rotate(0) scale(1)}68%{opacity:1;transform:none}78%{transform:translateY(-7px) rotate(-3deg)}100%{opacity:0;transform:translate(280px,140px) rotate(14deg) scale(.78)}}@keyframes hammer-real{0%,11%{opacity:0;transform:rotate(-118deg)}12%{opacity:1;transform:rotate(-118deg)}18%{opacity:1;transform:rotate(-45deg)}19%{transform:rotate(-50deg)}22%,70%{opacity:1;transform:rotate(-45deg)}82%{opacity:1;transform:rotate(-92deg)}100%{opacity:0;transform:rotate(-120deg)}}`;
 document.head.append(effectStyle);
-
-interface CrackPath {
-  points: Array<{ x: number; y: number }>;
-  birth: number;
-  width: number;
-}
-
-const animateCracks = (canvasElement: HTMLCanvasElement, x: number, y: number): void => {
-  const ratio = devicePixelRatio || 1;
-  const width = canvasElement.clientWidth;
-  const height = canvasElement.clientHeight;
-  canvasElement.width = width * ratio;
-  canvasElement.height = height * ratio;
-  const crack = canvasElement.getContext('2d') as CanvasRenderingContext2D;
-  crack.scale(ratio, ratio);
-  crack.lineCap = 'round';
-  crack.lineJoin = 'round';
-  const paths: CrackPath[] = [];
-  const branch = (
-    startX: number,
-    startY: number,
-    angle: number,
-    length: number,
-    depth: number,
-    birth: number,
-  ): void => {
-    const points = [{ x: startX, y: startY }];
-    let px = startX;
-    let py = startY;
-    for (let step = 0; step < 9; step += 1) {
-      angle += (Math.random() - .5) * .42;
-      const segment = length * (.07 + Math.random() * .065);
-      px += Math.cos(angle) * segment; py += Math.sin(angle) * segment;
-      points.push({ x: px, y: py });
-      if (depth > 0 && step > 1 && Math.random() < .38) {
-        branch(
-          px,
-          py,
-          angle + (Math.random() < .5 ? -1 : 1) * (.4 + Math.random()),
-          length * .48,
-          depth - 1,
-          birth + step / 26,
-        );
-      }
-    }
-    paths.push({ points, birth, width: depth === 2 ? 2.4 : depth === 1 ? 1.6 : .9 });
-  };
-  for (let ray = 0; ray < 22; ray += 1) {
-    branch(
-      x,
-      y,
-      ray / 22 * Math.PI * 2 + Math.random() * .22,
-      260 + Math.random() * Math.max(width, height) * .46,
-      2,
-      ray / 100,
-    );
-  }
-
-  const startedAt = performance.now();
-  const draw = (now: number): void => {
-    const elapsed = now - startedAt;
-    const growth = Math.min(1, elapsed / 520);
-    const repair = elapsed < 5_050 ? 0 : Math.min(1, (elapsed - 5_050) / 1_550);
-    const visible = Math.max(0, growth - repair);
-    crack.clearRect(0, 0, width, height);
-    for (const path of paths) {
-      const localProgress = Math.max(0, Math.min(1, (visible - path.birth) / .55));
-      const pointCount = Math.ceil((path.points.length - 1) * localProgress) + 1;
-      if (pointCount < 2) continue;
-      crack.beginPath();
-      crack.moveTo(path.points[0].x, path.points[0].y);
-      for (let index = 1; index < pointCount; index += 1) {
-        crack.lineTo(path.points[index].x, path.points[index].y);
-      }
-      crack.strokeStyle = '#030509';
-      crack.lineWidth = path.width + 2.1;
-      crack.stroke();
-      crack.strokeStyle = '#f0f8ff';
-      crack.lineWidth = path.width;
-      crack.stroke();
-    }
-    if (visible > .02) {
-      const craterRadius = 5 + visible * 20;
-      const gradient = crack.createRadialGradient(x, y, 1, x, y, craterRadius);
-      gradient.addColorStop(0, '#fff');
-      gradient.addColorStop(.22, '#091018');
-      gradient.addColorStop(.5, '#eaf7ff');
-      gradient.addColorStop(1, '#ffffff00');
-      crack.fillStyle = gradient;
-      crack.beginPath();
-      crack.arc(x, y, craterRadius, 0, Math.PI * 2);
-      crack.fill();
-    }
-    if (elapsed < 6_650) requestAnimationFrame(draw);
-  };
-  requestAnimationFrame(draw);
-};
 
 const playGlassImpact = (): void => {
   const audio = new AudioContext();
@@ -249,11 +153,11 @@ const addEffect = (effect: DesktopEffect): void => {
     item.style.width = `${effect.area.width}px`;
     item.style.height = `${effect.area.height}px`;
     item.style.setProperty('--hit-x', `${hitX}px`); item.style.setProperty('--hit-y', `${hitY}px`);
-    item.innerHTML = '<canvas class="crack-layer"></canvas><div class="clippy-smash"><span class="clippy-caption">It looks like you\'re using a screen.</span></div>';
+    item.innerHTML = '<div class="clippy-smash"><span class="clippy-caption">It looks like you\'re using a screen.</span></div><div class="real-hammer"><i class="shaft"></i><i class="head"></i></div>';
     effects.append(item);
+    if (effect.snapshot) runGlassFracture(item, effect.snapshot, hitX, hitY);
     setTimeout(() => {
       playGlassImpact();
-      animateCracks(item.querySelector('.crack-layer') as HTMLCanvasElement, hitX, hitY);
     }, 1_560);
     setTimeout(() => item.remove(), 8_400); return;
   }
@@ -264,7 +168,11 @@ const addEffect = (effect: DesktopEffect): void => {
     item.style.width = `${effect.area.width}px`;
     item.style.height = `${effect.area.height}px`;
     effects.append(item);
-    runMinecraftDig(item, effect.x - effect.area.x, effect.y - effect.area.y);
+    runMinecraftDig(
+      item,
+      effect.x - effect.area.x,
+      effect.workArea.y + effect.workArea.height - effect.area.y,
+    );
     setTimeout(() => item.remove(), 13_500); return;
   }
   effects.append(item); setTimeout(() => item.remove(), 1_100);

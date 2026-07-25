@@ -49,6 +49,15 @@ character and trademark; the generated image is an unofficial transformative
 depiction and is not an original Microsoft asset. Other generated imagery is
 fictional and does not depict a real person.
 
+The glass-fracture shader adapts the Voronoi/fBM technique documented in
+[`shader.glsl`](shader.glsl), which credits the Shadertoy
+[Vorocracks variant](https://www.shadertoy.com/view/lsVyRy) and
+[integrated cracks example](https://www.shadertoy.com/view/Xd3fRN). When the
+effect runs, Electron captures the affected monitor once so the shader can
+refract the pixels that were actually visible. That frame remains in memory
+only for the duration of the click-through effect; it is not saved or sent
+anywhere.
+
 These assets are included only for the app's temporary visual effects. Do not
 reuse or redistribute third-party game assets separately from the project
 without checking the applicable owner terms.

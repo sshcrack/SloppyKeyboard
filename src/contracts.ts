@@ -45,10 +45,10 @@ export interface MinigameDraw {
 }
 export type DesktopEffect =
   | { kind: 'balls'; x: number; y: number; count?: number }
-  | { kind: 'fracture'; x: number; y: number; area: ScreenRect }
+  | { kind: 'fracture'; x: number; y: number; area: ScreenRect; snapshot?: string }
   | { kind: 'cameo'; x: number; y: number }
   | { kind: 'cursor-goose'; x: number; y: number }
-  | { kind: 'steve-dig'; x: number; y: number; area: ScreenRect }
+  | { kind: 'steve-dig'; x: number; y: number; area: ScreenRect; workArea: ScreenRect }
   | { kind: 'omen-title' }
   | { kind: 'eyes'; x: number; y: number; side: 'left' | 'right' };
 export const DEBUG_SURPRISES = [
